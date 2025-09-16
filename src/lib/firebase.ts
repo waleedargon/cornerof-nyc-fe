@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -8,12 +8,12 @@ import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCyHpg_Eo3uxbhAmg1e33nX_Kk-GGtZwGs",
-  authDomain: "group-vibe-chatroom.firebaseapp.com",
-  projectId: "group-vibe-chatroom",
-  storageBucket: "group-vibe-chatroom.firebasestorage.app",
-  messagingSenderId: "768552762158",
-  appId: "1:768552762158:web:57ef6c9b134404e10358bf"
+  apiKey: "AIzaSyAVdkQNNZAWXamVsITY37XF7Msq9X1iyt8",
+  authDomain: "cornerof-nyc.firebaseapp.com",
+  projectId: "cornerof-nyc",
+  storageBucket: "cornerof-nyc.firebasestorage.app",
+  messagingSenderId: "410559076966",
+  appId: "1:410559076966:web:1868eed42791340f6b6ba7"
 };
 
 // Initialize Firebase
@@ -22,4 +22,4 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+export { app, auth, db, storage, RecaptchaVerifier, signInWithPhoneNumber };

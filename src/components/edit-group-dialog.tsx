@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Edit, Loader2, Upload, X } from 'lucide-react';
-import { doc, updateDoc, deleteField, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
+import { uploadFile } from '@/lib/storage';
 import type { Group, GroupIntent, GroupMode } from '@/lib/types';
 
 const formSchema = z.object({
@@ -100,36 +102,31 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
 
     try {
       const groupRef = doc(db, 'groups', group.id);
-      let pictureUrl = group.pictureUrl;
+      let pictureUrl: string | undefined | null = group.pictureUrl;
 
       // Handle image upload/removal
       if (values.picture) {
-        // Delete old image if exists
+        // A new file is uploaded
         if (group.pictureUrl) {
           try {
             const oldImageRef = ref(storage, group.pictureUrl);
             await deleteObject(oldImageRef);
           } catch (error) {
-            console.log('Old image not found, continuing...');
+            console.warn('Old image not found, continuing with upload...');
           }
         }
-
-        // Upload new image
-        const imageRef = ref(storage, `groups/${group.id}-${Date.now()}`);
-        await uploadBytes(imageRef, values.picture);
-        pictureUrl = await getDownloadURL(imageRef);
+        pictureUrl = await uploadFile(values.picture, 'group-pictures');
       } else if (imagePreview === null && group.pictureUrl) {
-        // Remove image if user cleared it
+        // Image was removed by the user
         try {
           const oldImageRef = ref(storage, group.pictureUrl);
           await deleteObject(oldImageRef);
         } catch (error) {
-          console.log('Old image not found, continuing...');
+          console.warn('Old image not found, continuing...');
         }
-        pictureUrl = undefined;
+        pictureUrl = null; // Mark for removal
       }
 
-      // Update group data
       const updateData: any = {
         name: values.name,
         neighborhood: values.neighborhood,
@@ -140,9 +137,8 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
 
       if (pictureUrl) {
         updateData.pictureUrl = pictureUrl;
-      } else if (imagePreview === null && group.pictureUrl) {
-        // Use deleteField to remove the pictureUrl field
-        updateData.pictureUrl = deleteField();
+      } else if (pictureUrl === null) {
+        updateData.pictureUrl = deleteField(); // Remove the field from Firestore
       }
 
       await updateDoc(groupRef, updateData);

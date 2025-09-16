@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Loader2, ChevronLeft } from 'lucide-react';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { E164Number } from 'libphonenumber-js/core';
 import Link from 'next/link';
 
@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { joinGroup } from '@/lib/actions';
 import { PhoneNumberInput } from '@/components/ui/phone-number-input';
 import { Logo } from '@/components/logo';
 
@@ -32,7 +31,7 @@ const profileSchema = z.object({
   phone: z.string()
     .min(1, 'Phone number is required.')
     .refine((phone) => {
-      // Phone should be in E164 format: +15551234567 (11 digits total)
+      // Phone should be in E164 format: +15551234567 (12 digits total)
       return phone.startsWith('+1') && phone.length === 12 && /^\+1\d{10}$/.test(phone);
     }, {
       message: 'Please enter a valid US phone number.',
@@ -89,7 +88,6 @@ export function SignUpForm() {
         return;
       }
 
-      // Instead of creating the user directly, redirect to OTP verification
       const params = new URLSearchParams({
         phone: fullPhoneNumber,
         name: values.name,
@@ -97,20 +95,14 @@ export function SignUpForm() {
         sex: values.sex,
       });
 
-      // Add invite code if present
       if (inviteCode) {
         params.append('code', inviteCode);
       }
 
-      toast({
-        title: 'OTP Sent!',
-        description: 'Please check your phone for the verification code.',
-      });
-
       router.push(`/verify-otp?${params.toString()}`);
     } catch (error) {
       console.error('Error during signup:', error);
-      toast({ title: 'Error', description: 'An error occurred. Please try again.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'An unexpected error occurred. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -118,7 +110,6 @@ export function SignUpForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-background relative">
-      {/* Back button */}
       <div className="absolute top-6 left-6">
         <Button asChild variant="ghost" size="icon">
           <Link href="/">
@@ -128,9 +119,7 @@ export function SignUpForm() {
         </Button>
       </div>
       
-      {/* Centered content */}
       <div className="w-full max-w-md">
-        {/* Logo above form */}
         <div className="flex justify-center mb-8">
           <Logo size="xxl" />
         </div>

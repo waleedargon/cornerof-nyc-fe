@@ -6,8 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Plus, Loader2, Upload, X } from 'lucide-react';
-import { collection, addDoc, doc, serverTimestamp, getDoc, query, where, getDocs } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, doc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { uploadFile } from '@/lib/storage';
 import type { User, GroupIntent, GroupMode } from '@/lib/types';
 import { generateInviteCode } from '@/lib/utils';
 
@@ -125,9 +125,7 @@ export function AddGroupDialog({ user }: { user: User }) {
       // Upload image if provided
       let pictureUrl: string | undefined;
       if (imageFile) {
-        const imageRef = ref(storage, `groups/${Date.now()}_${imageFile.name}`);
-        const uploadResult = await uploadBytes(imageRef, imageFile);
-        pictureUrl = await getDownloadURL(uploadResult.ref);
+        pictureUrl = await uploadFile(imageFile, 'group-pictures');
       }
 
       // Create group data

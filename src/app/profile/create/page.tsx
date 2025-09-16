@@ -1,11 +1,12 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { Loader2, User as UserIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, User as UserIcon, Camera } from 'lucide-react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Header } from '@/components/header';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-
+import { uploadFile } from '@/lib/storage'; // Import the uploadFile function
+import Image from 'next/image';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -32,6 +34,7 @@ const profileSchema = z.object({
   sex: z.enum(['male', 'female', 'other'], {
     required_error: 'Please select an option.',
   }),
+  avatar: z.any().optional(), // Add avatar to the schema
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -42,6 +45,8 @@ export default function CreateProfilePage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -72,6 +77,9 @@ export default function CreateProfilePage() {
             age: userData.age || 18,
             sex: userData.sex,
           });
+          if (userData.avatarUrl) {
+            setAvatarPreview(userData.avatarUrl);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -93,19 +101,28 @@ export default function CreateProfilePage() {
     setLoading(true);
     try {
       const userRef = doc(db, 'users', user.id);
+      let avatarUrl = avatarPreview; // Keep existing avatar by default
+
+      // If a new avatar has been selected, upload it
+      if (values.avatar && values.avatar.length > 0) {
+        avatarUrl = await uploadFile(values.avatar[0], 'profile-pictures');
+      }
 
       await updateDoc(userRef, {
         name: values.name,
         age: values.age,
         sex: values.sex,
-        avatarUrl: '', // Explicitly set avatarUrl to empty
+        avatarUrl: avatarUrl,
       });
 
       localStorage.setItem('userName', values.name);
+      if(avatarUrl) {
+        localStorage.setItem('userAvatar', avatarUrl);
+      }
 
       toast({
         title: 'Profile Updated!',
-        description: "Your profile information has been saved.",
+        description: 'Your profile information has been saved.',
       });
 
       router.push('/home');
@@ -122,7 +139,7 @@ export default function CreateProfilePage() {
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    )
+    );
   }
 
   return (
@@ -137,13 +154,47 @@ export default function CreateProfilePage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="flex justify-center">
-                    <div className="relative h-32 w-32 bg-muted flex items-center justify-center border-2 border-dashed">
-                      <div className="flex flex-col items-center text-muted-foreground">
-                        <UserIcon className="h-10 w-10" />
-                      </div>
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="avatar"
+                    render={({ field }) => (
+                      <FormItem className="flex justify-center">
+                        <FormControl>
+                          <div 
+                            className="relative h-32 w-32 bg-muted flex items-center justify-center border-2 border-dashed rounded-full overflow-hidden cursor-pointer"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            {avatarPreview ? (
+                              <Image src={avatarPreview} alt="Avatar preview" layout="fill" objectFit="cover" />
+                            ) : (
+                              <div className="flex flex-col items-center text-muted-foreground">
+                                <UserIcon className="h-10 w-10" />
+                              </div>
+                            )}
+                             <div className="absolute inset-0 bg-black bg-opacity-25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                <Camera className="h-8 w-8 text-white" />
+                            </div>
+                            <Input 
+                                type="file"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        field.onChange(e.target.files);
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            setAvatarPreview(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
+                            />
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}
