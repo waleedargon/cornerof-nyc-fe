@@ -1,12 +1,11 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
-import { Loader2, User as UserIcon, Camera } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, User as UserIcon } from 'lucide-react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Header } from '@/components/header';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import { uploadFile } from '@/lib/storage'; // Import the uploadFile function
-import Image from 'next/image';
+import { ImageUpload } from '@/components/image-upload';
+import { uploadUserAvatar, deleteFile } from '@/lib/storage';
+
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -34,7 +34,6 @@ const profileSchema = z.object({
   sex: z.enum(['male', 'female', 'other'], {
     required_error: 'Please select an option.',
   }),
-  avatar: z.any().optional(), // Add avatar to the schema
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -45,8 +44,10 @@ export default function CreateProfilePage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string>('');
+  const [currentAvatarPath, setCurrentAvatarPath] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -77,9 +78,8 @@ export default function CreateProfilePage() {
             age: userData.age || 18,
             sex: userData.sex,
           });
-          if (userData.avatarUrl) {
-            setAvatarPreview(userData.avatarUrl);
-          }
+          setCurrentAvatarUrl(userData.avatarUrl || '');
+          setCurrentAvatarPath(userData.avatarPath || '');
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -92,6 +92,15 @@ export default function CreateProfilePage() {
     fetchUserData();
   }, [user, authLoading, router, toast, form]);
 
+  const handleImageSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
+  const handleImageRemove = () => {
+    setSelectedFile(null);
+    setCurrentAvatarUrl('');
+  };
+
   async function onSubmit(values: ProfileFormData) {
     if (!user) {
       toast({ title: 'Error', description: 'You must be logged in to update a profile.', variant: 'destructive' });
@@ -99,36 +108,55 @@ export default function CreateProfilePage() {
     }
 
     setLoading(true);
-    try {
-      const userRef = doc(db, 'users', user.id);
-      let avatarUrl = avatarPreview; // Keep existing avatar by default
+    let newAvatarUrl = currentAvatarUrl;
+    let newAvatarPath = currentAvatarPath;
 
-      // If a new avatar has been selected, upload it
-      if (values.avatar && values.avatar.length > 0) {
-        avatarUrl = await uploadFile(values.avatar[0], 'profile-pictures');
+    try {
+      // Handle image upload if a new file was selected
+      if (selectedFile) {
+        setUploadingImage(true);
+        
+        // Delete old avatar if it exists
+        if (currentAvatarPath) {
+          await deleteFile(currentAvatarPath);
+        }
+
+        // Upload new avatar
+        const uploadResult = await uploadUserAvatar(selectedFile, user.id);
+        newAvatarUrl = uploadResult.url;
+        newAvatarPath = uploadResult.path;
+        
+        setUploadingImage(false);
+      } else if (!currentAvatarUrl && currentAvatarPath) {
+        // User removed avatar - delete from storage
+        await deleteFile(currentAvatarPath);
+        newAvatarUrl = '';
+        newAvatarPath = '';
       }
 
+      const userRef = doc(db, 'users', user.id);
       await updateDoc(userRef, {
         name: values.name,
         age: values.age,
         sex: values.sex,
-        avatarUrl: avatarUrl,
+        avatarUrl: newAvatarUrl,
+        avatarPath: newAvatarPath,
       });
 
+      // Update localStorage
       localStorage.setItem('userName', values.name);
-      if(avatarUrl) {
-        localStorage.setItem('userAvatar', avatarUrl);
-      }
+      localStorage.setItem('userAvatar', newAvatarUrl);
 
       toast({
         title: 'Profile Updated!',
-        description: 'Your profile information has been saved.',
+        description: "Your profile information has been saved.",
       });
 
       router.push('/home');
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({ title: 'Error', description: 'Could not update your profile. Please try again.', variant: 'destructive' });
+      setUploadingImage(false);
     } finally {
       setLoading(false);
     }
@@ -139,7 +167,7 @@ export default function CreateProfilePage() {
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    );
+    )
   }
 
   return (
@@ -154,47 +182,28 @@ export default function CreateProfilePage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="avatar"
-                    render={({ field }) => (
-                      <FormItem className="flex justify-center">
-                        <FormControl>
-                          <div 
-                            className="relative h-32 w-32 bg-muted flex items-center justify-center border-2 border-dashed rounded-full overflow-hidden cursor-pointer"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            {avatarPreview ? (
-                              <Image src={avatarPreview} alt="Avatar preview" layout="fill" objectFit="cover" />
-                            ) : (
-                              <div className="flex flex-col items-center text-muted-foreground">
-                                <UserIcon className="h-10 w-10" />
-                              </div>
-                            )}
-                             <div className="absolute inset-0 bg-black bg-opacity-25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                                <Camera className="h-8 w-8 text-white" />
-                            </div>
-                            <Input 
-                                type="file"
-                                className="hidden"
-                                ref={fileInputRef}
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        field.onChange(e.target.files);
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                            setAvatarPreview(reader.result as string);
-                                        };
-                                        reader.readAsDataURL(file);
-                                    }
-                                }}
-                            />
-                          </div>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex justify-center">
+                    <ImageUpload
+                      currentImageUrl={currentAvatarUrl}
+                      onImageSelect={handleImageSelect}
+                      onImageRemove={handleImageRemove}
+                      variant="square"
+                      size="xl"
+                      disabled={uploadingImage || loading}
+                      placeholder="Upload your profile picture"
+                      uploadOptions={{
+                        maxSize: 2 * 1024 * 1024, // 2MB
+                        allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+                      }}
+                    />
+                  </div>
+                  
+                  {uploadingImage && (
+                    <div className="flex items-center justify-center text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Uploading image...
+                    </div>
+                  )}
 
                   <FormField
                     control={form.control}
@@ -261,9 +270,9 @@ export default function CreateProfilePage() {
                     )}
                   />
 
-                  <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
+                  <Button type="submit" size="lg" className="w-full" disabled={loading || uploadingImage}>
+                    {(loading || uploadingImage) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {uploadingImage ? 'Uploading...' : loading ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </form>
               </Form>

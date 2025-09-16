@@ -138,15 +138,16 @@ export function GroupMembersDialog({ group, currentUser, onGroupUpdated }: Group
             <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
               <div className="flex items-center gap-3">
                 {member.avatarUrl ? (
-                  <Image
-                    src={member.avatarUrl}
-                    alt={member.name}
-                    width={40}
-                    height={40}
-                    className="rounded-full object-cover"
-                  />
+                  <div className="w-10 h-10 relative overflow-hidden rounded-lg bg-muted">
+                    <Image
+                      src={member.avatarUrl}
+                      alt={member.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
                 ) : (
-                  <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
                     <span className="text-sm font-medium">
                       {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </span>

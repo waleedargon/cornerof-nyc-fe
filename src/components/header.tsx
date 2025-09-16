@@ -3,12 +3,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, LogOut, User } from 'lucide-react';
-import { signOut } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
-import { auth } from '@/lib/firebase';
-import { useToast } from '@/hooks/use-toast';
 
 type HeaderProps = {
   title?: string;
@@ -20,18 +17,12 @@ type HeaderProps = {
 
 export function Header({ title, backHref, showSignOut = false, showLogo = true, centerLogo = false }: HeaderProps) {
   const router = useRouter();
-  const { toast } = useToast();
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      // The useAuth hook will handle clearing localStorage and redirecting
-      toast({ title: 'Signed Out', description: 'You have been successfully signed out.' });
-      router.push('/'); // Redirect to home page after sign out
-    } catch (error) {
-      console.error("Error signing out: ", error);
-      toast({ title: 'Error', description: 'Failed to sign out. Please try again.', variant: 'destructive' });
-    }
+  const handleSignOut = () => {
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    router.push('/');
   };
   
   if (centerLogo) {
@@ -48,7 +39,7 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
                 </Link>
               </Button>
             ) : (
-              <div className="w-10"></div> // Spacer to balance the right side
+              <div className="w-10"></div>
             )}
           </div>
 
@@ -79,7 +70,6 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
     );
   }
 
-  // Default header layout
   return (
     <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
       <div className="flex h-16 items-center justify-between px-4 max-w-7xl mx-auto">

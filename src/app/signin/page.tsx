@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -21,12 +22,13 @@ const FormSchema = z.object({
   phone: z.string()
     .min(1, 'Phone number is required.')
     .refine((phone) => {
-      // Phone should be in E164 format: +15551234567 (12 digits total)
+      // Phone should be in E164 format: +15551234567 (11 digits total)
       return phone.startsWith('+1') && phone.length === 12 && /^\+1\d{10}$/.test(phone);
     }, {
       message: 'Please enter a valid US phone number.',
     }),
 });
+
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
@@ -50,13 +52,16 @@ export default function SignInPage() {
 
       if (querySnapshot.empty) {
         toast({ title: 'Error', description: 'Phone number not found. Please sign up.', variant: 'destructive' });
-        setLoading(false);
-        return;
+      } else {
+        const userDoc = querySnapshot.docs[0];
+        // Direct login without OTP for signin
+        localStorage.setItem('userPhone', phoneNumber);
+        localStorage.setItem('userId', userDoc.id);
+        localStorage.setItem('userName', userDoc.data().name);
+
+        toast({ title: 'Success', description: 'Signed in successfully!' });
+        router.push('/home');
       }
-
-      // Just redirect to the OTP page, which will handle sending the code
-      router.push(`/verify-otp?phone=${phoneNumber}`);
-
     } catch (error: any) {
       console.error(error);
       toast({ title: 'Error', description: 'An error occurred. Please try again.', variant: 'destructive' });
@@ -67,6 +72,7 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-background relative">
+      {/* Back button */}
       <div className="absolute top-6 left-6">
         <Button asChild variant="ghost" size="icon">
           <Link href="/">
@@ -76,7 +82,9 @@ export default function SignInPage() {
         </Button>
       </div>
       
+      {/* Centered content */}
       <div className="w-full max-w-md">
+        {/* Logo above form */}
         <div className="flex justify-center mb-8">
           <Logo size="xxl" />
         </div>

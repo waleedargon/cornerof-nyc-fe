@@ -5,9 +5,8 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Plus, Loader2, Upload, X } from 'lucide-react';
-import { collection, addDoc, doc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
-import Image from 'next/image';
+import { Plus, Loader2 } from 'lucide-react';
+import { collection, addDoc, doc, serverTimestamp, getDoc, query, where, getDocs } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,9 +39,10 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { uploadFile } from '@/lib/storage';
 import type { User, GroupIntent, GroupMode } from '@/lib/types';
 import { generateInviteCode } from '@/lib/utils';
+import { ImageUpload } from '@/components/image-upload';
+import { uploadGroupImage, deleteFile } from '@/lib/storage';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Group name must be at least 3 characters.'),
@@ -63,8 +63,8 @@ type FormData = z.infer<typeof formSchema>;
 export function AddGroupDialog({ user }: { user: User }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const form = useForm<FormData>({
@@ -80,22 +80,13 @@ export function AddGroupDialog({ user }: { user: User }) {
     },
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      form.setValue('picture', file);
-    }
+  const handleImageSelect = (file: File) => {
+    setSelectedFile(file);
+    form.setValue('picture', file);
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
+  const handleImageRemove = () => {
+    setSelectedFile(null);
     form.setValue('picture', null);
   };
 
@@ -124,8 +115,27 @@ export function AddGroupDialog({ user }: { user: User }) {
 
       // Upload image if provided
       let pictureUrl: string | undefined;
-      if (imageFile) {
-        pictureUrl = await uploadFile(imageFile, 'group-pictures');
+      let picturePath: string | undefined;
+      if (selectedFile) {
+        setUploadingImage(true);
+        try {
+          // Create a temporary group ID for the upload
+          const tempGroupId = Date.now().toString();
+          const uploadResult = await uploadGroupImage(selectedFile, tempGroupId);
+          pictureUrl = uploadResult.url;
+          picturePath = uploadResult.path;
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast({
+            title: 'Image upload failed',
+            description: 'The group was not created due to image upload failure.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          setUploadingImage(false);
+          return;
+        }
+        setUploadingImage(false);
       }
 
       // Create group data
@@ -144,9 +154,10 @@ export function AddGroupDialog({ user }: { user: User }) {
         hasActiveMatch: false, // Default to no active match
       };
 
-      // Only add pictureUrl if it exists (avoid undefined values)
+      // Only add picture data if it exists (avoid undefined values)
       if (pictureUrl) {
         groupData.pictureUrl = pictureUrl;
+        groupData.picturePath = picturePath;
       }
 
       await addDoc(collection(db, 'groups'), groupData);
@@ -195,47 +206,29 @@ export function AddGroupDialog({ user }: { user: User }) {
                   <FormItem>
                     <FormControl>
                       <div className="flex justify-center">
-                        {imagePreview ? (
-                          <div className="relative w-24 h-24">
-                            <Image
-                              src={imagePreview}
-                              alt="Group preview"
-                              fill
-                              className="object-cover rounded-lg border-2 border-dashed border-gray-300"
-                            />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                              onClick={removeImage}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div
-                            className="flex items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
-                            onClick={() => document.getElementById('picture-upload')?.click()}
-                          >
-                            <div className="text-center">
-                              <Upload className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-                              <p className="text-xs text-gray-500">Upload</p>
-                            </div>
-                          </div>
-                        )}
-                        <input
-                          id="picture-upload"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
+                        <ImageUpload
+                          onImageSelect={handleImageSelect}
+                          onImageRemove={handleImageRemove}
+                          variant="square"
+                          size="lg"
+                          disabled={loading || uploadingImage}
+                          placeholder="Upload group photo"
+                          uploadOptions={{
+                            maxSize: 5 * 1024 * 1024, // 5MB
+                            allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+                          }}
                         />
                       </div>
                     </FormControl>
                     <FormDescription className="text-center">
                       Add a photo to represent your group
                     </FormDescription>
+                    {uploadingImage && (
+                      <div className="flex items-center justify-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Uploading image...
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -366,9 +359,9 @@ export function AddGroupDialog({ user }: { user: User }) {
               />
 
               <DialogFooter>
-                <Button type="submit" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Group
+                <Button type="submit" disabled={loading || uploadingImage}>
+                  {(loading || uploadingImage) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {uploadingImage ? 'Uploading...' : loading ? 'Creating...' : 'Create Group'}
                 </Button>
               </DialogFooter>
             </form>

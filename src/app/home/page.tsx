@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -54,9 +55,8 @@ import { DemocracyInvitations } from '@/components/democracy-invitations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InviteDialog } from '@/components/invite-dialog';
 import { findPotentialMatch, handleMatchDecision } from '@/lib/actions';
-import { ProtectedRoute } from '@/components/protected-route';
 
-function HomePage() {
+export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [userGroup, setUserGroup] = useState<Group | null>(null);
@@ -199,7 +199,7 @@ function HomePage() {
     });
 
     return () => unsubscribeGroups();
-  }, [user, authLoading, getNextMatch, potentialMatch]);
+  }, [user, authLoading]);
 
   // Listen for received invitations count
   useEffect(() => {
@@ -493,7 +493,87 @@ function HomePage() {
                   </Button>
                 </div>
               </div>
-            )}
+            )
+              // : isFindingMatch ? (
+              //   <div className="flex flex-col items-center justify-center text-center p-8">
+              //     <Loader2 className="h-10 w-10 text-muted-foreground animate-spin mb-3" />
+              //     <h3 className="text-lg font-semibold mb-1 font-headline">
+              //       Searching for a match...
+              //     </h3>
+              //   </div>
+              // ) 
+              // : potentialMatch ? (
+              //   <div className="space-y-4">
+              //     <div>
+              //       <h3 className="text-lg font-semibold font-headline">
+              //         {potentialMatch.name}
+              //       </h3>
+              //       <p className="text-sm text-muted-foreground">
+              //         A group of {potentialMatch.size} from {potentialMatch.neighborhood}
+              //       </p>
+              //     </div>
+              //     <div className="text-sm">
+              //       <p>
+              //         <span className="font-semibold">Vibe:</span> {potentialMatch.vibe}
+              //       </p>
+              //       <p>
+              //         <span className="font-semibold">Intent:</span> "{potentialMatch.intent}"
+              //       </p>
+              //     </div>
+
+              //     {potentialMatch.status === 'liked-by-us' ? (
+              //       <div className="p-4 text-center bg-muted rounded-md text-muted-foreground">
+              //         <Heart className="h-5 w-5 mx-auto mb-2 text-primary" />
+              //         <p className="font-semibold">You accepted!</p>
+              //         <p className="text-sm">Waiting for them to respond...</p>
+              //       </div>
+              //     ) : (
+              //       <>
+              //         {potentialMatch.status === 'liked-by-them' && (
+              //           <div className="p-2 text-center bg-accent rounded-md text-accent-foreground">
+              //             <p className="font-semibold text-sm">They accepted! What do you think?</p>
+              //           </div>
+              //         )}
+              //         <div className="grid grid-cols-2 gap-4 pt-2">
+              //           <Button
+              //             variant="outline"
+              //             onClick={() => onDecision('no')}
+              //             disabled={decisionLoading}
+              //           >
+              //             {decisionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
+              //             Reject
+              //           </Button>
+              //           <Button onClick={() => onDecision('yes')} disabled={decisionLoading}>
+              //             {decisionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
+              //             Accept
+              //           </Button>
+              //         </div>
+              //       </>
+              //     )}
+              //   </div>
+              // ) : (
+              //   <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed">
+              //     <Search className="h-10 w-10 text-muted-foreground mb-3" />
+              //     <h3 className="text-lg font-semibold mb-1 font-headline">
+              //       No new groups right now.
+              //     </h3>
+              //     <p className="text-sm text-muted-foreground mb-4">
+              //       {userGroup
+              //         ? 'Check back later or click to try again.'
+              //         : 'Create a group to start finding matches.'}
+              //     </p>
+              //     <Button
+              //       onClick={() => userGroup && getNextMatch(userGroup.id)}
+              //       disabled={!userGroup || isFindingMatch}
+              //     >
+              //       {isFindingMatch ? (
+              //         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              //       ) : null}
+              //       Find New Match
+              //     </Button>
+              //   </div>
+              // )
+            }
           </CardContent>
         </Card>
         }
@@ -539,15 +619,24 @@ function LoadingSkeleton() {
             </div>
           </CardContent>
         </Card>
+        {/* 
+        <Card>
+          <CardHeader>
+            <CardTitle>My Match</CardTitle>
+            <div className="text-sm text-muted-foreground pt-1.5">
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed">
+              <Search className="h-10 w-10 text-muted-foreground mb-3" />
+              <Skeleton className="h-6 w-40 mb-2" />
+              <Skeleton className="h-4 w-64 mb-4" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </CardContent>
+        </Card> */}
       </div>
     </div>
   );
-}
-
-export default function ProtectedHomePage() {
-    return (
-        <ProtectedRoute>
-            <HomePage />
-        </ProtectedRoute>
-    );
 }
