@@ -26,11 +26,23 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { ImageUpload } from '@/components/image-upload';
 import { uploadUserAvatar, deleteFile } from '@/lib/storage';
+import { calculateAge, getMaxBirthDate, getMinBirthDate } from '@/lib/date-utils';
 
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
-  age: z.coerce.number().min(18, 'You must be at least 18 years old.'),
+  dateOfBirth: z.string()
+    .min(1, 'Date of birth is required.')
+    .refine((date) => {
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const finalAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+      return finalAge >= 18;
+    }, {
+      message: 'You must be at least 18 years old.',
+    }),
   sex: z.enum(['male', 'female', 'other'], {
     required_error: 'Please select an option.',
   }),
@@ -53,7 +65,7 @@ export default function CreateProfilePage() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '',
-      age: 18,
+      dateOfBirth: '',
     },
   });
 
@@ -75,7 +87,7 @@ export default function CreateProfilePage() {
           const userData = userDoc.data();
           form.reset({
             name: userData.name || '',
-            age: userData.age || 18,
+            dateOfBirth: userData.dateOfBirth || '',
             sex: userData.sex,
           });
           setCurrentAvatarUrl(userData.avatarUrl || '');
@@ -137,7 +149,8 @@ export default function CreateProfilePage() {
       const userRef = doc(db, 'users', user.id);
       await updateDoc(userRef, {
         name: values.name,
-        age: values.age,
+        dateOfBirth: values.dateOfBirth,
+        age: calculateAge(values.dateOfBirth), // Calculate and store age for backward compatibility
         sex: values.sex,
         avatarUrl: newAvatarUrl,
         avatarPath: newAvatarPath,
@@ -221,12 +234,17 @@ export default function CreateProfilePage() {
 
                   <FormField
                     control={form.control}
-                    name="age"
+                    name="dateOfBirth"
                     render={({ field }) => (
                       <FormItem className="space-y-0">
-                        <FormLabel>Age</FormLabel>
+                        <FormLabel>Date of Birth</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="date" 
+                            min={getMinBirthDate()}
+                            max={getMaxBirthDate()}
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

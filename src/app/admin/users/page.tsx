@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/firebase";
 import type { User } from "@/lib/types";
+import { formatDateOfBirth, calculateAge } from "@/lib/date-utils";
 
 
 async function getUsers(): Promise<User[]> {
@@ -46,7 +47,7 @@ export default async function AdminUsersPage() {
             <TableRow>
               <TableHead className="w-[100px]">Avatar</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Age</TableHead>
+              <TableHead>Date of Birth</TableHead>
               <TableHead>Sex</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
@@ -74,7 +75,18 @@ export default async function AdminUsersPage() {
                     )}
                 </TableCell>
                 <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.age}</TableCell>
+                <TableCell>
+                  {user.dateOfBirth ? (
+                    <div>
+                      <div>{formatDateOfBirth(user.dateOfBirth)}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Age: {calculateAge(user.dateOfBirth)}
+                      </div>
+                    </div>
+                  ) : (
+                    user.age ? `Age: ${user.age}` : 'Not provided'
+                  )}
+                </TableCell>
                 <TableCell className="capitalize">{user.sex}</TableCell>
                 <TableCell>
                   <Badge variant="outline">Active</Badge>

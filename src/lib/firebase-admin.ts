@@ -1,32 +1,81 @@
 
-import * as admin from 'firebase-admin';
+// Use dynamic import to avoid module loading issues
+let admin: any = null;
+let adminAuth: any = null;
+let adminDb: any = null;
 
-let adminAuth: admin.auth.Auth | null = null;
-let adminDb: admin.firestore.Firestore | null = null;
+// Initialize Firebase Admin SDK
+async function initializeFirebaseAdmin() {
+  try {
+    // Lazy load Firebase Admin SDK
+    if (!admin) {
+      admin = await import('firebase-admin');
+      // Handle both named and default exports
+      admin = admin.default || admin;
+    }
 
-try {
-  if (!admin.apps.length) {
+    // Check if already initialized
+    if (admin.apps && admin.apps.length > 0) {
+      console.log("🔥 Firebase Admin SDK already initialized");
+      adminAuth = admin.auth();
+      adminDb = admin.firestore();
+      return;
+    }
+
     const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 
-    if (serviceAccountBase64) {
-      const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
-      const serviceAccount = JSON.parse(serviceAccountJson);
-
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log("Firebase Admin SDK initialized successfully from Base64 env var.");
-    } else {
-      console.warn("FIREBASE_SERVICE_ACCOUNT_BASE64 env var not found. Admin features will be disabled.");
+    if (!serviceAccountBase64) {
+      console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT_BASE64 env var not found. Admin features will be disabled.");
+      return;
     }
-  }
 
-  if (admin.apps.length > 0) {
-    adminAuth = admin.auth();
-    adminDb = admin.firestore();
+    // Decode base64 and parse JSON
+    const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
+    const serviceAccount = JSON.parse(serviceAccountJson);
+
+    // Validate required fields
+    if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
+      throw new Error('Invalid service account: missing required fields');
+    }
+
+    // Initialize Firebase Admin
+    const app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: serviceAccount.project_id,
+    });
+
+    // Initialize services
+    adminAuth = admin.auth(app);
+    adminDb = admin.firestore(app);
+    
+    console.log("🔥 Firebase Admin SDK initialized successfully!");
+    console.log(`Project ID: ${serviceAccount.project_id}`);
+    console.log(`Service Account: ${serviceAccount.client_email}`);
+    console.log("✅ Firebase Admin Auth and Firestore initialized");
+
+  } catch (error: any) {
+    console.error("💥 Firebase Admin SDK initialization failed:", error);
+    adminAuth = null;
+    adminDb = null;
   }
-} catch (error) {
-  console.error("Firebase Admin SDK initialization failed:", error);
+}
+
+// Initialize on module load
+initializeFirebaseAdmin();
+
+// Helper functions to safely get admin services
+export async function getAdminAuth(): Promise<any> {
+  if (!adminAuth) {
+    await initializeFirebaseAdmin(); // Try to initialize again
+  }
+  return adminAuth;
+}
+
+export async function getAdminDb(): Promise<any> {
+  if (!adminDb) {
+    await initializeFirebaseAdmin(); // Try to initialize again
+  }
+  return adminDb;
 }
 
 export { adminAuth, adminDb };

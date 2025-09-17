@@ -1,12 +1,16 @@
-
 'use client';
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { Users, User, Tent, LayoutDashboard, Home, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLayout({
   children,
@@ -14,50 +18,114 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { isAdmin, loading, user, error } = useAdminAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Check for admin flag in localStorage
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (isAdmin !== 'true') {
-      router.push('/admin-signin'); // Redirect to admin sign-in page
+    
+    // Prevent redirect loops - don't redirect if already on admin-signin
+    if (pathname === '/admin-signin') {
+      return;
     }
-  }, [router]);
+    
+    // Don't redirect immediately - give time for auth to settle
+    const redirectTimer = setTimeout(() => {
+      // Only redirect if we're absolutely sure there's no user
+      if (!loading && !user) {
+        console.log('No user found after delay, redirecting to admin sign-in');
+        router.push('/admin-signin');
+      } 
+      // Only redirect for access denied if we have a clear error and user is not admin
+      else if (!loading && user && !isAdmin && error && error.includes('Access denied')) {
+        console.log('Access denied, redirecting to home');
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have admin privileges.',
+          variant: 'destructive'
+        });
+        router.push('/');
+      }
+      // If user exists but admin status is still being verified, don't redirect
+      else if (!loading && user && !isAdmin && !error) {
+        console.log('User exists, admin status being verified... staying on admin page');
+        // Don't redirect - let the verification complete
+      }
+    }, 2000); // Increased delay to 2 seconds
 
-  const handleSignOut = () => {
-    localStorage.removeItem('isAdmin'); // Clear admin flag
-    router.push('/');
+    return () => clearTimeout(redirectTimer);
+  }, [isAdmin, loading, user, error, router, toast, pathname]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // Clear admin status cache
+      localStorage.removeItem('adminStatus');
+      router.push('/');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Show error if there's an auth error
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Authentication Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => router.push('/admin-signin')}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not admin (this will be handled by useEffect, but adding as fallback)
+  if (!isAdmin) {
+    return null;
+  }
 
   const navLinks = (
     <>
-        <Link
-            href="/admin"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-        >
-            <LayoutDashboard className="h-5 w-5" />
-            Dashboard
-        </Link>
-        <Link
-            href="/admin/groups"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-        >
-            <Users className="h-5 w-5" />
-            Groups
-        </Link>
-        <Link
-            href="/admin/users"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-        >
-            <User className="h-5 w-5" />
-            Users
-        </Link>
-        <Link
-            href="/admin/venues"
-            className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-        >
-            <Tent className="h-5 w-5" />
-            Venues
-        </Link>
+      <Link
+        href="/admin"
+        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+      >
+        <LayoutDashboard className="h-5 w-5" />
+        Dashboard
+      </Link>
+      <Link
+        href="/admin/groups"
+        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+      >
+        <Users className="h-5 w-5" />
+        Groups
+      </Link>
+      <Link
+        href="/admin/users"
+        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+      >
+        <User className="h-5 w-5" />
+        Users
+      </Link>
+      <Link
+        href="/admin/venues"
+        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+      >
+        <Tent className="h-5 w-5" />
+        Venues
+      </Link>
     </>
   );
 
@@ -82,11 +150,11 @@ export default function AdminLayout({
           </Link>
           <Link href="/admin/users" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
             <User className="h-5 w-5" />
-             <span className="sr-only">Users</span>
+            <span className="sr-only">Users</span>
           </Link>
-           <Link href="/admin/venues" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
+          <Link href="/admin/venues" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
             <Tent className="h-5 w-5" />
-             <span className="sr-only">Venues</span>
+            <span className="sr-only">Venues</span>
           </Link>
         </nav>
       </aside>
@@ -115,12 +183,15 @@ export default function AdminLayout({
               </nav>
             </SheetContent>
           </Sheet>
-           <h1 className="text-lg sm:text-xl font-semibold font-headline text-primary">Admin Dashboard</h1>
-           <div className="ml-auto">
+          <h1 className="text-lg sm:text-xl font-semibold font-headline text-primary">Admin Dashboard</h1>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {user?.email}
+            </span>
             <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign Out">
-                <LogOut className="h-5 w-5" />
+              <LogOut className="h-5 w-5" />
             </Button>
-           </div>
+          </div>
         </header>
         <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
           {children}

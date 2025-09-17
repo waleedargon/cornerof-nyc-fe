@@ -27,6 +27,7 @@ import { db } from '@/lib/firebase';
 import { joinGroup } from '@/lib/actions';
 import { PhoneNumberInput } from '@/components/ui/phone-number-input';
 import { Logo } from '@/components/logo';
+import { calculateAge, getMaxBirthDate, getMinBirthDate } from '@/lib/date-utils';
 
 const profileSchema = z.object({
   phone: z.string()
@@ -38,7 +39,18 @@ const profileSchema = z.object({
       message: 'Please enter a valid US phone number.',
     }),
   name: z.string().min(2, 'Name must be at least 2 characters.'),
-  age: z.coerce.number().min(18, 'You must be at least 18 years old.'),
+  dateOfBirth: z.string()
+    .min(1, 'Date of birth is required.')
+    .refine((date) => {
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const finalAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+      return finalAge >= 18;
+    }, {
+      message: 'You must be at least 18 years old.',
+    }),
   sex: z.enum(['male', 'female', 'other'], {
     required_error: 'Please select an option.',
   }),
@@ -58,13 +70,13 @@ export function SignUpForm() {
     defaultValues: {
       phone: '',
       name: '',
-      age: 18,
+      dateOfBirth: '',
     },
   });
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const phone = searchParams.get('phone');
+    const code = searchParams?.get('code');
+    const phone = searchParams?.get('phone');
 
     if (code) {
       setInviteCode(code);
@@ -93,7 +105,7 @@ export function SignUpForm() {
       const params = new URLSearchParams({
         phone: fullPhoneNumber,
         name: values.name,
-        age: values.age.toString(),
+        dateOfBirth: values.dateOfBirth,
         sex: values.sex,
       });
 
@@ -160,12 +172,17 @@ export function SignUpForm() {
 
                 <FormField
                   control={form.control}
-                  name="age"
+                  name="dateOfBirth"
                   render={({ field }) => (
                     <FormItem className="space-y-0">
-                      <FormLabel>Age</FormLabel>
+                      <FormLabel>Date of Birth</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input 
+                          type="date" 
+                          min={getMinBirthDate()}
+                          max={getMaxBirthDate()}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -45,6 +45,7 @@
     "embla-carousel-react": "^8.6.0",
     "emoji-picker-react": "^4.9.4",
     "firebase": "^11.9.1",
+    "firebase-admin": "^13.5.0",
     "framer-motion": "^12.23.12",
     "genkit": "^1.14.1",
     "libphonenumber-js": "^1.11.4",

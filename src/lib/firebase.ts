@@ -3,8 +3,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+// Firebase products are already configured below
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -24,14 +23,5 @@ const auth = getAuth(app);
 const db = getFirestore(app); // Uses default database
 const storage = getStorage(app);
 
-// Debug Firebase configuration
-if (typeof window !== 'undefined') {
-  console.log('🔥 Firebase Configuration Debug:', {
-    projectId: firebaseConfig.projectId,
-    authDomain: firebaseConfig.authDomain,
-    storageBucket: firebaseConfig.storageBucket,
-    currentDomain: window.location.hostname
-  });
-}
 
 export { app, auth, db, storage, RecaptchaVerifier, signInWithPhoneNumber };

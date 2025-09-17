@@ -64,20 +64,27 @@ export function AdminSignInForm() {
       const idToken = await user.getIdToken();
 
       // 3. Send the token to the admin-auth API route
-      const response = await axios.post('/api/admin-auth', { token: idToken });
+      const response = await axios.post('/api/admin/auth/verify', { token: idToken });
 
       if (response.status === 200) {
-        // On success, the API returns a custom token
-        const { customToken } = response.data;
-
-        // Here you would typically sign in with the custom token or store it
-        // For this example, we'll just confirm admin access and redirect
-        toast({ title: 'Admin Access Granted', description: 'Redirecting to admin panel...' });
+        const { isAdmin } = response.data;
         
-        // Store a flag to indicate admin status
-        localStorage.setItem('isAdmin', 'true');
-
-        router.push('/admin');
+        if (isAdmin) {
+          // Cache admin status immediately
+          localStorage.setItem('adminStatus', JSON.stringify({
+            isAdmin: true,
+            timestamp: Date.now(),
+            uid: user.uid
+          }));
+          
+          toast({ title: 'Admin Access Granted', description: 'Redirecting to admin panel...' });
+          // Small delay to ensure user state is properly set
+          setTimeout(() => {
+            router.push('/admin');
+          }, 500);
+        } else {
+          throw new Error('Access denied. You are not an admin.');
+        }
       } else {
         throw new Error('Admin verification failed.');
       }

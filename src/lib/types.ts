@@ -5,7 +5,8 @@ export type User = {
   id: string;
   name: string;
   avatarUrl?: string;
-  age?: number;
+  dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
+  age?: number; // Computed from dateOfBirth, kept for backward compatibility
   sex?: 'male' | 'female' | 'other';
   phone?: string;
 };

@@ -28,9 +28,9 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
   if (centerLogo) {
     return (
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="flex h-16 items-center justify-between px-4 max-w-7xl mx-auto">
+        <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
           {/* Left side - Back button or spacer */}
-          <div className="flex items-center">
+          <div className="flex items-center justify-start w-20 sm:w-24">
             {backHref ? (
               <Button asChild variant="ghost" size="icon">
                 <Link href={backHref}>
@@ -43,15 +43,15 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
             )}
           </div>
 
-          {/* Center - Logo */}
+          {/* Center - Logo (truly centered) */}
           <div className="flex-1 flex justify-center">
             <Link href="/home">
               <Logo size="sm" className="mb-0" />
             </Link>
           </div>
 
-          {/* Right side - Profile and Sign Out */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          {/* Right side - Profile and Sign Out (fixed width to match left) */}
+          <div className="flex items-center justify-end gap-1 sm:gap-2 w-20 sm:w-24">
             {showSignOut && (
               <>
                 <Button asChild variant="ghost" size="icon" aria-label="Profile">
