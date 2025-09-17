@@ -25,13 +25,26 @@ async function initializeFirebaseAdmin() {
     const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 
     if (!serviceAccountBase64) {
-      console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT_BASE64 env var not found. Admin features will be disabled.");
+      console.error("❌ FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable not found!");
+      console.error("📋 To fix this in Firebase App Hosting:");
+      console.error("1. Go to Firebase Console → App Hosting → Your App → Settings");
+      console.error("2. Add environment variable: FIREBASE_SERVICE_ACCOUNT_BASE64");
+      console.error("3. Set value to base64 encoded service account JSON");
+      console.error("4. Redeploy your application");
       return;
     }
 
     // Decode base64 and parse JSON
-    const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
-    const serviceAccount = JSON.parse(serviceAccountJson);
+    let serviceAccount;
+    try {
+      const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
+      serviceAccount = JSON.parse(serviceAccountJson);
+    } catch (parseError) {
+      console.error("❌ Failed to decode/parse service account JSON:");
+      console.error("📋 Make sure FIREBASE_SERVICE_ACCOUNT_BASE64 is properly base64 encoded");
+      console.error("Error details:", parseError);
+      return;
+    }
 
     // Validate required fields
     if (!serviceAccount.project_id || !serviceAccount.private_key || !serviceAccount.client_email) {
