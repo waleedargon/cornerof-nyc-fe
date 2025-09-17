@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -10,14 +10,24 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ChevronLeft } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { auth, db, RecaptchaVerifier, signInWithPhoneNumber } from '@/lib/firebase';
 import { joinGroup } from '@/lib/actions';
+
+// Add a global declaration for window.recaptchaVerifier if it doesn't exist
+// This prevents TypeScript errors when accessing a dynamically added property
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: any;
+  }
+}
 
 export function VerifyOTPForm() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -29,25 +39,114 @@ export function VerifyOTPForm() {
   const sex = searchParams.get('sex');
   const inviteCode = searchParams.get('code');
 
+  // Set up reCAPTCHA verifier
   useEffect(() => {
-    if (!phone || !name || !age || !sex) {
-      router.push('/signup');
+    if (isClient) {
+      if (!window.recaptchaVerifier) {
+        // Ensure the container is empty before rendering new reCAPTCHA
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        if (recaptchaContainer) {
+          recaptchaContainer.innerHTML = '';
+        }
+
+        // Create and render reCAPTCHA verifier
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': (response: any) => {
+            console.log('reCAPTCHA verified', response);
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            // Reset reCAPTCHA if it expires
+            if (window.recaptchaVerifier) {
+              window.recaptchaVerifier.render().then((widgetId) => {
+                window.recaptchaVerifier.reset(widgetId);
+              });
+            }
+          }
+        });
+
+        window.recaptchaVerifier.render().catch(error => {
+          console.error('reCAPTCHA render error:', error);
+          toast({ title: 'Error', description: 'Could not initialize reCAPTCHA. Please refresh the page.', variant: 'destructive' });
+        });
+      } else {
+        // If verifier exists, ensure it's rendered
+        window.recaptchaVerifier.render().catch(err => console.error("Recaptcha already rendered or error on re-render", err));
+      }
+    }
+  }, [isClient, toast]);
+
+  // Function to send OTP
+  const handleSendOTP = useCallback(async (isResend = false) => {
+    if (!phone) {
+      toast({ title: 'Error', description: 'Phone number is missing.', variant: 'destructive' });
       return;
     }
+    
+    if (isResend) {
+      setResendLoading(true);
+    } else {
+      setLoading(true); // Show loading state on initial send
+    }
 
-    // Start countdown for resend button
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
+    try {
+      const verifier = window.recaptchaVerifier;
+      if (!verifier) {
+        throw new Error('RecaptchaVerifier not initialized.');
+      }
+
+      const confirmationResult = await signInWithPhoneNumber(auth, phone, verifier);
+      window.confirmationResult = confirmationResult; // Store for later use
+
+      toast({
+        title: 'OTP Sent!',
+        description: 'A new verification code has been sent to your phone.',
       });
-    }, 1000);
 
-    return () => clearInterval(timer);
-  }, [phone, name, age, sex, router]);
+      setCountdown(30);
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      toast({ title: 'Error', description: 'Failed to send OTP. Please try again.', variant: 'destructive' });
+      // Attempt to reset reCAPTCHA on error
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then(widgetId => {
+          window.recaptchaVerifier.reset(widgetId);
+        }).catch(resetError => {
+            console.error("Error resetting reCAPTCHA after failed OTP send:", resetError);
+        });
+      }
+    } finally {
+      if (isResend) {
+        setResendLoading(false);
+      } else {
+        setLoading(false); // Hide loading state after initial send
+      }
+    }
+  }, [phone, toast]);
+
+  // Send OTP on initial component load
+  useEffect(() => {
+    setIsClient(true); // Indicate that the component has mounted
+  }, []);
+
+  useEffect(() => {
+    // Only run this when isClient is true and phone is available
+    if (isClient && phone) {
+      handleSendOTP(false); // Initial OTP send
+    }
+  }, [isClient, phone, handleSendOTP]);
+
 
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 6) {
@@ -63,12 +162,18 @@ export function VerifyOTPForm() {
 
     setLoading(true);
     try {
-      // For now, we'll just simulate OTP verification
-      // In a real app, you'd verify the OTP with your backend/SMS service
-      if (otp === '123456' || otp === '000000') { // Accept test OTPs
-        // Create user account
+      if (!window.confirmationResult) {
+        throw new Error('OTP not sent or session expired. Please resend OTP.');
+      }
+
+      const result = await window.confirmationResult.confirm(otp);
+      const user = result.user;
+
+      if (user) {
+        // Create user account in Firestore
         const usersRef = collection(db, 'users');
         const docRef = await addDoc(usersRef, {
+          uid: user.uid, // Store Firebase Auth UID
           phone: phone,
           name: name,
           age: parseInt(age),
@@ -77,10 +182,11 @@ export function VerifyOTPForm() {
           avatarUrl: '',
         });
 
-        // Store user info in localStorage
+        // Store essential user info in localStorage
         localStorage.setItem('userPhone', phone);
-        localStorage.setItem('userId', docRef.id);
+        localStorage.setItem('userId', docRef.id); // Firestore doc ID
         localStorage.setItem('userName', name);
+        localStorage.setItem('userUID', user.uid); // Firebase Auth UID
 
         toast({
           title: 'Account Created!',
@@ -90,11 +196,11 @@ export function VerifyOTPForm() {
         // If there's an invite code, join the group
         if (inviteCode) {
           try {
-            const result = await joinGroup(inviteCode, docRef.id);
-            if (result.success) {
-              toast({ title: 'Joined Group!', description: result.message });
+            const joinResult = await joinGroup(inviteCode, docRef.id);
+            if (joinResult.success) {
+              toast({ title: 'Joined Group!', description: joinResult.message });
             } else {
-              toast({ title: 'Warning', description: result.message, variant: 'destructive' });
+              toast({ title: 'Warning', description: joinResult.message, variant: 'destructive' });
             }
           } catch (error) {
             console.error('Error joining group:', error);
@@ -102,48 +208,21 @@ export function VerifyOTPForm() {
           }
         }
 
-        router.push('/home');
+        router.push('/home'); // Redirect to a protected route
       } else {
-        toast({ title: 'Error', description: 'Invalid OTP. Please try again.', variant: 'destructive' });
+        throw new Error('Could not verify user.');
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
-      toast({ title: 'Error', description: 'An error occurred. Please try again.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Invalid OTP or an error occurred. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
-
-  const handleResendOTP = async () => {
+  
+  const handleResendOTP = () => {
     if (countdown > 0) return;
-
-    setResendLoading(true);
-    try {
-      // Simulate resending OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'OTP Sent!',
-        description: 'A new verification code has been sent to your phone.',
-      });
-      
-      setCountdown(30);
-      
-      // Restart countdown
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to resend OTP. Please try again.', variant: 'destructive' });
-    } finally {
-      setResendLoading(false);
-    }
+    handleSendOTP(true);
   };
 
   const handleOTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,10 +237,16 @@ export function VerifyOTPForm() {
       handleVerifyOTP();
     }
   };
+  
+  // Return null on the server to ensure client-side rendering only
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-background relative">
-      {/* Back button */}
+      <div id="recaptcha-container"></div>
+
       <div className="absolute top-6 left-6">
         <Button asChild variant="ghost" size="icon">
           <Link href="/signup">
@@ -171,9 +256,7 @@ export function VerifyOTPForm() {
         </Button>
       </div>
       
-      {/* Centered content */}
       <div className="w-full max-w-md">
-        {/* Logo above form */}
         <div className="flex justify-center mb-8">
           <Logo size="xxl" />
         </div>
@@ -194,7 +277,7 @@ export function VerifyOTPForm() {
               </label>
               <Input
                 id="otp"
-                type="text"
+                type="tel" // Use type='tel' for numeric keyboard on mobile
                 placeholder="Enter 6-digit code"
                 value={otp}
                 onChange={handleOTPChange}
@@ -224,10 +307,6 @@ export function VerifyOTPForm() {
                 {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}
               </Button>
-            </div>
-
-            <div className="text-center text-xs text-muted-foreground">
-              <p>For testing, use: 123456 or 000000</p>
             </div>
           </CardContent>
         </Card>

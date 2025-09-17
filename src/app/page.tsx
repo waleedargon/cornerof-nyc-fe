@@ -63,7 +63,7 @@ export default function LandingPage() {
 
         <div className="mt-8">
           <Button asChild variant="link" className="text-muted-foreground">
-            <Link href="/admin-signup">Admin Sign Up</Link>
+            <Link href="/admin-signin">Admin Sign In</Link>
           </Button>
         </div>
       </div>

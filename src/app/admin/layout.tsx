@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Users, User, Tent, LayoutDashboard, Home, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -14,7 +15,16 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
 
+  useEffect(() => {
+    // Check for admin flag in localStorage
+    const isAdmin = localStorage.getItem('isAdmin');
+    if (isAdmin !== 'true') {
+      router.push('/admin-signin'); // Redirect to admin sign-in page
+    }
+  }, [router]);
+
   const handleSignOut = () => {
+    localStorage.removeItem('isAdmin'); // Clear admin flag
     router.push('/');
   };
 
