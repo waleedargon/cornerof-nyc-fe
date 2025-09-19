@@ -173,13 +173,14 @@ export default function AdminLayout({
                 <SheetTitle className="sr-only">Menu</SheetTitle>
               </SheetHeader>
               <nav className="grid gap-6 text-lg font-medium mt-4">
-                <Link
-                  href="/"
-                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                <Button
+                  onClick={handleSignOut}
+                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base hover:bg-primary/90"
+                  aria-label="Sign Out"
                 >
-                  <Home className="h-5 w-5 transition-all group-hover:scale-110" />
-                  <span className="sr-only">CORNER OF Home</span>
-                </Link>
+                  <LogOut className="h-5 w-5 transition-all group-hover:scale-110" />
+                  <span className="sr-only">Sign Out</span>
+                </Button>
                 {navLinks}
               </nav>
             </SheetContent>
