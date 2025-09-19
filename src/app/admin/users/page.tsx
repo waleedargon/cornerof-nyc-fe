@@ -2,6 +2,10 @@ import { MoreHorizontal, User as UserIcon } from "lucide-react";
 import Image from "next/image";
 import { collection, getDocs } from "firebase/firestore";
 
+// Disable caching for this page to ensure fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {

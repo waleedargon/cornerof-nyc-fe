@@ -4,6 +4,10 @@ import { collection, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 
+// Disable caching for this page to ensure fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getCounts() {
     const usersPromise = getDocs(collection(db, 'users'));
     const groupsPromise = getDocs(collection(db, 'groups'));

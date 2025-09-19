@@ -13,6 +13,10 @@ import type { Venue } from "@/lib/types";
 import { AddVenueDialog } from "@/components/admin/add-venue-dialog";
 import { VenueActions } from "@/components/admin/venue-actions";
 
+// Disable caching for this page to ensure fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getVenues(): Promise<Venue[]> {
   const venuesCol = collection(db, 'venues');
   const venueSnapshot = await getDocs(venuesCol);

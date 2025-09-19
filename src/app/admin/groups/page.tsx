@@ -2,6 +2,10 @@ import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import Image from "next/image";
 import { User } from "lucide-react";
 
+// Disable caching for this page to ensure fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
