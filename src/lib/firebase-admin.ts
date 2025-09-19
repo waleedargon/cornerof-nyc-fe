@@ -22,26 +22,25 @@ async function initializeFirebaseAdmin() {
       return;
     }
 
-    const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
-    if (!serviceAccountBase64) {
-      console.error("❌ FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable not found!");
+    if (!serviceAccountJson) {
+      console.error("❌ FIREBASE_SERVICE_ACCOUNT_JSON environment variable not found!");
       console.error("📋 To fix this in Firebase App Hosting:");
-      console.error("1. Go to Firebase Console → App Hosting → Your App → Settings");
-      console.error("2. Add environment variable: FIREBASE_SERVICE_ACCOUNT_BASE64");
-      console.error("3. Set value to base64 encoded service account JSON");
+      console.error("1. Go to your Google Cloud project's Secret Manager");
+      console.error("2. Create a secret named 'firebase-service-account' with your service account JSON");
+      console.error("3. Ensure your App Hosting backend has access to this secret");
       console.error("4. Redeploy your application");
       return;
     }
 
-    // Decode base64 and parse JSON
+    // Parse JSON
     let serviceAccount;
     try {
-      const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
       serviceAccount = JSON.parse(serviceAccountJson);
     } catch (parseError) {
-      console.error("❌ Failed to decode/parse service account JSON:");
-      console.error("📋 Make sure FIREBASE_SERVICE_ACCOUNT_BASE64 is properly base64 encoded");
+      console.error("❌ Failed to parse service account JSON:");
+      console.error("📋 Make sure FIREBASE_SERVICE_ACCOUNT_JSON is a valid JSON string");
       console.error("Error details:", parseError);
       return;
     }
