@@ -58,9 +58,11 @@ export default function AdminLayout({
 
   const handleSignOut = async () => {
     try {
+      console.log('🚪 Admin logout button clicked - signing out...');
       await signOut(auth);
       // Clear admin status cache
       localStorage.removeItem('adminStatus');
+      console.log('✅ Admin signed out successfully, redirecting to home...');
       router.push('/');
     } catch (error) {
       console.error('Sign out error:', error);
@@ -133,14 +135,15 @@ export default function AdminLayout({
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Button
+          {/* <Button
             onClick={handleSignOut}
-            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base hover:bg-primary/90"
+            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-red-600 text-lg font-semibold text-white md:h-8 md:w-8 md:text-base hover:bg-red-700"
             aria-label="Sign Out"
+            title="Sign Out"
           >
             <LogOut className="h-4 w-4 transition-all group-hover:scale-110" />
             <span className="sr-only">Sign Out</span>
-          </Button>
+          </Button> */}
           <Link href="/admin" className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
             <LayoutDashboard className="h-5 w-5" />
             <span className="sr-only">Dashboard</span>
@@ -175,8 +178,9 @@ export default function AdminLayout({
               <nav className="grid gap-6 text-lg font-medium mt-4">
                 <Button
                   onClick={handleSignOut}
-                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base hover:bg-primary/90"
+                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-red-600 text-lg font-semibold text-white md:text-base hover:bg-red-700"
                   aria-label="Sign Out"
+                  title="Sign Out"
                 >
                   <LogOut className="h-5 w-5 transition-all group-hover:scale-110" />
                   <span className="sr-only">Sign Out</span>
