@@ -22,26 +22,55 @@ async function initializeFirebaseAdmin() {
       return;
     }
 
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-
-    if (!serviceAccountJson) {
-      console.error("❌ FIREBASE_SERVICE_ACCOUNT_JSON environment variable not found!");
-      console.error("📋 To fix this in Firebase App Hosting:");
-      console.error("1. Go to your Google Cloud project's Secret Manager");
-      console.error("2. Create a secret named 'firebase-service-account' with your service account JSON");
-      console.error("3. Ensure your App Hosting backend has access to this secret");
-      console.error("4. Redeploy your application");
-      return;
-    }
-
-    // Parse JSON
+    // Try multiple methods to get service account credentials
     let serviceAccount;
-    try {
-      serviceAccount = JSON.parse(serviceAccountJson);
-    } catch (parseError) {
-      console.error("❌ Failed to parse service account JSON:");
-      console.error("📋 Make sure FIREBASE_SERVICE_ACCOUNT_JSON is a valid JSON string");
-      console.error("Error details:", parseError);
+    
+    // Method 1: Try Secret Manager (for production deployment)
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    
+    // Method 2: Try base64 encoded env var (for local development)
+    const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+    
+    if (serviceAccountJson) {
+      // Production: Using Secret Manager
+      console.log("🔧 Using Firebase Secret Manager for service account");
+      try {
+        serviceAccount = JSON.parse(serviceAccountJson);
+        
+        // Fix private key formatting - replace escaped newlines with actual newlines
+        if (serviceAccount.private_key) {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+      } catch (parseError) {
+        console.error("❌ Failed to parse service account JSON from Secret Manager:");
+        console.error("Error details:", parseError);
+        return;
+      }
+    } else if (serviceAccountBase64) {
+      // Local development: Using base64 encoded env var
+      console.log("🔧 Using base64 environment variable for service account");
+      try {
+        const serviceAccountJsonDecoded = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
+        serviceAccount = JSON.parse(serviceAccountJsonDecoded);
+        
+        // Fix private key formatting - replace escaped newlines with actual newlines
+        if (serviceAccount.private_key) {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+      } catch (parseError) {
+        console.error("❌ Failed to decode/parse service account JSON from base64:");
+        console.error("📋 Make sure FIREBASE_SERVICE_ACCOUNT_BASE64 is properly base64 encoded");
+        console.error("Error details:", parseError);
+        return;
+      }
+    } else {
+      console.error("❌ No Firebase service account credentials found!");
+      console.error("📋 For local development:");
+      console.error("   - Set FIREBASE_SERVICE_ACCOUNT_BASE64 in your .env.local file");
+      console.error("   - Use the base64 encoded service account JSON");
+      console.error("📋 For production deployment:");
+      console.error("   - Service account should be available via Firebase Secret Manager");
+      console.error("   - Secret name: 'firebase-service-account'");
       return;
     }
 
