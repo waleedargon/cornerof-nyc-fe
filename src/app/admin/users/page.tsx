@@ -1,4 +1,4 @@
-import { MoreHorizontal, User as UserIcon } from "lucide-react";
+import { User as UserIcon } from "lucide-react";
 import Image from "next/image";
 import { collection, getDocs } from "firebase/firestore";
 
@@ -6,7 +6,6 @@ import { collection, getDocs } from "firebase/firestore";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -16,13 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/firebase";
 import type { User } from "@/lib/types";
@@ -96,19 +88,7 @@ export default async function AdminUsersPage() {
                   <Badge variant="outline">Active</Badge>
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>View Profile</DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <span className="text-sm text-muted-foreground">No actions available</span>
                 </TableCell>
               </TableRow>
             ))}

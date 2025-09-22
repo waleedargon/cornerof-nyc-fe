@@ -43,7 +43,7 @@ const profileSchema = z.object({
     }, {
       message: 'You must be at least 18 years old.',
     }),
-  sex: z.enum(['male', 'female', 'other'], {
+  sex: z.enum(['male', 'female', 'prefer-not-to-say'], {
     required_error: 'Please select an option.',
   }),
 });
@@ -205,7 +205,7 @@ export default function CreateProfilePage() {
                       disabled={uploadingImage || loading}
                       placeholder="Upload your profile picture"
                       uploadOptions={{
-                        maxSize: 2 * 1024 * 1024, // 2MB
+                        maxSize: 5 * 1024 * 1024, // 5MB
                         allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
                       }}
                     />
@@ -243,6 +243,7 @@ export default function CreateProfilePage() {
                             type="date" 
                             min={getMinBirthDate()}
                             max={getMaxBirthDate()}
+                            className="text-left"
                             {...field} 
                           />
                         </FormControl>
@@ -277,9 +278,9 @@ export default function CreateProfilePage() {
                             </FormItem>
                             <FormItem className="flex items-center space-x-2 space-y-0">
                               <FormControl>
-                                <RadioGroupItem value="other" />
+                                <RadioGroupItem value="prefer-not-to-say" />
                               </FormControl>
-                              <FormLabel className="font-normal">Other</FormLabel>
+                              <FormLabel className="font-normal">Prefer not to say</FormLabel>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>

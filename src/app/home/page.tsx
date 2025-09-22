@@ -108,9 +108,9 @@ export default function HomePage() {
 
   const formatIntent = (intent: string) => {
     switch (intent) {
-      case 'all-boys': return 'All Boys';
+      case 'all-boys': return 'All Guys';
       case 'all-girls': return 'All Girls';
-      case 'mixed': return 'Mixed (Boys & Girls)';
+      case 'mixed': return 'Mixed (Guys & Girls)';
       case 'any': return 'Any (Open to All)';
       default: return intent;
     }

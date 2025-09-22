@@ -10,11 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Group } from "@/lib/types";
-import { DeleteGroupDialog } from "./delete-group-dialog";
+import { EditGroupDialog } from "@/components/edit-group-dialog";
 import { useState } from "react";
 
-export function GroupActions({ group }: { group: Group }) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+export function GroupActions({ group, onGroupUpdated }: { group: Group; onGroupUpdated: () => void }) {
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   return (
     <>
@@ -27,10 +27,10 @@ export function GroupActions({ group }: { group: Group }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)} className="text-red-600">Delete</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>Edit Group</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
-        <DeleteGroupDialog group={group} open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} />
+        <EditGroupDialog group={group} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} onGroupUpdated={onGroupUpdated} />
     </>
   );
 }

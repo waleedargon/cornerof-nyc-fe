@@ -232,10 +232,6 @@ export default function MatchesPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Button>
-          <div className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-xl font-semibold">Find Matches</h1>
-          </div>
         </div>
 
         {/* Group Status Info */}
@@ -327,7 +323,7 @@ export default function MatchesPage() {
             {/* AI Match Info */}
             <div className="text-xs text-center text-muted-foreground mt-8 space-y-1">
               <p>🤖 Matches powered by AI</p>
-              <p>Swipe left to pass • Swipe right to invite</p>
+              <p><span className="text-red-500">Swipe left to pass</span> • <span className="text-green-500">Swipe right to invite</span></p>
             </div>
           </div>
         )}

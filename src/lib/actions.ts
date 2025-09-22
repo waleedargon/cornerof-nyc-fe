@@ -47,10 +47,30 @@ export async function joinGroup(inviteCode: string, userId: string): Promise<{ s
     const groupData = groupDoc.data();
     const userRef = doc(db, 'users', userId);
 
-    // Check if user is already in a group
+    // Check if user is already in this specific group
     const isMember = groupData.members.some((memberRef: DocumentReference) => memberRef.path === userRef.path);
     if (isMember) {
       return { success: true, message: 'You are already in this group.' };
+    }
+
+    // Check if user is already in ANY OTHER group (1 group restriction)
+    const allGroupsQuery = query(groupsRef);
+    const allGroupsSnapshot = await getDocs(allGroupsQuery);
+    
+    for (const groupDocSnapshot of allGroupsSnapshot.docs) {
+      // Skip the current group we're trying to join
+      if (groupDocSnapshot.id === groupDoc.id) {
+        continue;
+      }
+      
+      const existingGroupData = groupDocSnapshot.data();
+      const isUserInGroup = existingGroupData.members.some((memberRef: DocumentReference) => memberRef.path === userRef.path);
+      if (isUserInGroup) {
+        return { 
+          success: false, 
+          message: 'You are already in a group. You need to leave your current group before joining another one.' 
+        };
+      }
     }
     
     // Check if group is full

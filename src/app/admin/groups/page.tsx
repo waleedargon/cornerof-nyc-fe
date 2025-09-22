@@ -1,10 +1,9 @@
+'use client';
+
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import Image from "next/image";
 import { User } from "lucide-react";
-
-// Disable caching for this page to ensure fresh data
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { useState, useEffect } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -69,8 +68,40 @@ async function getGroups(): Promise<Group[]> {
 }
 
 
-export default async function AdminGroupsPage() {
-  const groups = await getGroups();
+export default function AdminGroupsPage() {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      const fetchedGroups = await getGroups();
+      setGroups(fetchedGroups);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const handleGroupUpdated = () => {
+    fetchGroups(); // Refresh the groups list
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Groups</CardTitle>
+          <CardDescription>Loading groups...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -129,7 +160,7 @@ export default async function AdminGroupsPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <GroupActions group={group} />
+                  <GroupActions group={group} onGroupUpdated={handleGroupUpdated} />
                 </TableCell>
               </TableRow>
             ))}

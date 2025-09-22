@@ -311,9 +311,9 @@ export function AddGroupDialog({ user }: { user: User }) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all-boys">All Boys</SelectItem>
+                        <SelectItem value="all-boys">All Guys</SelectItem>
                         <SelectItem value="all-girls">All Girls</SelectItem>
-                        <SelectItem value="mixed">Mixed (Boys & Girls)</SelectItem>
+                        <SelectItem value="mixed">Mixed (Guys & Girls)</SelectItem>
                         <SelectItem value="any">Any (Open to All)</SelectItem>
                       </SelectContent>
                     </Select>

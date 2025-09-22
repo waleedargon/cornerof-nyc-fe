@@ -93,7 +93,7 @@ export async function deleteFile(path: string): Promise<void> {
  */
 export async function uploadUserAvatar(file: File, userId: string): Promise<UploadResult> {
   return uploadFile(file, `avatars/${userId}`, {
-    maxSize: 2 * 1024 * 1024, // 2MB for avatars
+    maxSize: 5 * 1024 * 1024, // 5MB for avatars
     allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   });
 }

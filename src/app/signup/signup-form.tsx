@@ -51,7 +51,7 @@ const profileSchema = z.object({
     }, {
       message: 'You must be at least 18 years old.',
     }),
-  sex: z.enum(['male', 'female', 'other'], {
+  sex: z.enum(['male', 'female', 'prefer-not-to-say'], {
     required_error: 'Please select an option.',
   }),
 });
@@ -181,6 +181,7 @@ export function SignUpForm() {
                           type="date" 
                           min={getMinBirthDate()}
                           max={getMaxBirthDate()}
+                          className="text-left"
                           {...field} 
                         />
                       </FormControl>
@@ -215,9 +216,9 @@ export function SignUpForm() {
                           </FormItem>
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
-                              <RadioGroupItem value="other" />
+                              <RadioGroupItem value="prefer-not-to-say" />
                             </FormControl>
-                            <FormLabel className="font-normal">Other</FormLabel>
+                            <FormLabel className="font-normal">Prefer not to say</FormLabel>
                           </FormItem>
                         </RadioGroup>
                       </FormControl>

@@ -29,6 +29,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -43,6 +44,7 @@ import type { Group, GroupIntent, GroupMode } from '@/lib/types';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Group name must be at least 3 characters.'),
+  size: z.array(z.number()).min(1).max(1),
   neighborhood: z.string().min(3, 'Please enter a neighborhood.'),
   vibe: z.string().min(3, "Describe your group's vibe."),
   intent: z.enum(['all-boys', 'all-girls', 'mixed', 'any'], {
@@ -58,19 +60,26 @@ type FormData = z.infer<typeof formSchema>;
 
 interface EditGroupDialogProps {
   group: Group;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onGroupUpdated: () => void;
 }
 
-export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps) {
-  const [open, setOpen] = useState(false);
+export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: EditGroupDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(group.pictureUrl || null);
   const { toast } = useToast();
+
+  // Use external control if provided, otherwise use internal state
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: group.name,
+      size: [group.size],
       neighborhood: group.neighborhood,
       vibe: group.vibe,
       intent: group.intent,
@@ -132,6 +141,7 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
       // Update group data
       const updateData: any = {
         name: values.name,
+        size: values.size[0],
         neighborhood: values.neighborhood,
         vibe: values.vibe,
         intent: values.intent,
@@ -152,7 +162,7 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
         description: `Your group "${values.name}" has been successfully updated.`,
       });
 
-      setOpen(false);
+      setIsOpen(false);
       onGroupUpdated();
     } catch (error) {
       console.error('Error updating group:', error);
@@ -167,7 +177,7 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Edit className="h-4 w-4" />
@@ -252,6 +262,26 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
 
             <FormField
               control={form.control}
+              name="size"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Group Size: {field.value[0]}</FormLabel>
+                  <FormControl>
+                    <Slider
+                      min={2}
+                      max={10}
+                      step={1}
+                      defaultValue={[field.value[0]]}
+                      onValueChange={(value) => field.onChange(value)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="neighborhood"
               render={({ field }) => (
                 <FormItem>
@@ -295,9 +325,9 @@ export function EditGroupDialog({ group, onGroupUpdated }: EditGroupDialogProps)
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="all-boys">All Boys</SelectItem>
+                      <SelectItem value="all-boys">All Guys</SelectItem>
                       <SelectItem value="all-girls">All Girls</SelectItem>
-                      <SelectItem value="mixed">Mixed (Boys & Girls)</SelectItem>
+                      <SelectItem value="mixed">Mixed (Guys & Girls)</SelectItem>
                       <SelectItem value="any">Any (Open to All)</SelectItem>
                     </SelectContent>
                   </Select>
