@@ -61,7 +61,7 @@ export function AdminSignInForm() {
       const user = userCredential.user;
 
       // 2. Get the ID token from the authenticated user
-      const idToken = await user.getIdToken();
+      const idToken = await user.getIdToken(true);
 
       // 3. Send the token to the admin-auth API route
       const response = await axios.post('/api/admin/auth/verify', { token: idToken });
