@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from '@/lib/firebase-admin';
 
 // Add the admin UIDs here
-const ADMIN_UIDS = ['SoMmscT7CDhJzhrG5JU1ZdXQlw92', 'Ea9w2a9a92IV0p313b5a7s6BFr73'];
+const ADMIN_UIDS = ['f3GrmTj4zpSs7iIMhj1K0fN7pAr1'];
 
 export async function POST(request: NextRequest) {
   try {
