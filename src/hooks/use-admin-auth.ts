@@ -90,7 +90,7 @@ export function useAdminAuth() {
         }
 
         console.log('🔑 Getting ID token for verification...');
-        const idToken = await user.getIdToken();
+        const idToken = await user.getIdToken(true);
         
         const response = await fetch('/api/admin/auth/verify', {
           method: 'POST',
