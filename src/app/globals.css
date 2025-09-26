@@ -8,6 +8,8 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  /* Preload hint for better performance */
+  font-feature-settings: 'kern' 1;
 }
 
 
@@ -87,6 +89,36 @@
     font-style: normal;
     line-height: 0.9;
     letter-spacing: -0.02em;
+    /* Optimize font rendering */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Performance optimizations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-scroll {
+    will-change: scroll-position;
+  }
+  
+  .gpu-accelerated {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* Reduce layout shift */
+  .aspect-ratio-preserve {
+    aspect-ratio: attr(width) / attr(height);
+  }
+
+  /* Optimize scrolling */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

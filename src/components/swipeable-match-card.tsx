@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import { Heart, X, Users, MapPin, Target } from 'lucide-react';
-import Image from 'next/image';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import { Card } from '@/components/ui/card';
 import type { Group, User as UserType } from '@/lib/types';
 
@@ -144,11 +144,13 @@ export function SwipeableMatchCard({ match, onInvite, onPass }: SwipeableMatchCa
           {/* Group Picture */}
           <div className="w-32 flex-shrink-0 relative bg-gradient-to-br from-blue-100 to-purple-100">
             {match.pictureUrl ? (
-              <Image
+              <OptimizedImage
                 src={match.pictureUrl}
                 alt={match.name}
                 fill
                 className="object-cover"
+                sizes="128px"
+                quality={80}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -199,14 +201,16 @@ export function SwipeableMatchCard({ match, onInvite, onPass }: SwipeableMatchCa
                   if (!isUserObject(member)) return null;
                   
                   return member.avatarUrl ? (
-                    <Image
+                    <OptimizedImage
                       key={member.id}
-                      alt={member.name || 'Member'}
-                      className="aspect-square rounded-full object-cover border-2 border-white"
-                      height="24"
                       src={member.avatarUrl}
-                      width="24"
+                      alt={member.name || 'Member'}
+                      width={24}
+                      height={24}
+                      className="aspect-square rounded-full object-cover border-2 border-white"
                       title={member.name || 'Member'}
+                      sizes="24px"
+                      quality={75}
                     />
                   ) : (
                     <div

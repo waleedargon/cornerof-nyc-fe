@@ -14,6 +14,8 @@ import { findPotentialMatches } from '@/lib/actions';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { SwipeableMatchCard } from '@/components/swipeable-match-card';
+import { LoadingSpinner, MatchCardSkeleton } from '@/components/ui/loading-states';
+import { LazyLoad } from '@/components/ui/lazy-wrapper';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
@@ -185,8 +187,8 @@ export default function MatchesPage() {
       <div className="flex min-h-screen flex-col">
         <Header centerLogo={true} showSignOut={!!user} />
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="flex items-center gap-3">
+            <LoadingSpinner size="lg" />
             <span>Loading matches...</span>
           </div>
         </div>
@@ -310,13 +312,19 @@ export default function MatchesPage() {
             </div>
             
             <div className="space-y-4">
-              {potentialMatches.map((group) => (
-                <SwipeableMatchCard
+              {potentialMatches.map((group, index) => (
+                <LazyLoad
                   key={group.id}
-                  match={group}
-                  onPass={() => handlePass(group.id)}
-                  onInvite={() => handleInvite(group)}
-                />
+                  threshold={0.1}
+                  rootMargin="100px"
+                  fallback={<MatchCardSkeleton />}
+                >
+                  <SwipeableMatchCard
+                    match={group}
+                    onPass={() => handlePass(group.id)}
+                    onInvite={() => handleInvite(group)}
+                  />
+                </LazyLoad>
               ))}
             </div>
             
