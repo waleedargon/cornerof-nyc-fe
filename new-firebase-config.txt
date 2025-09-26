@@ -1,0 +1,18 @@
+// Updated Firebase configuration for migration
+// Replace the config in src/lib/firebase.ts with this:
+
+const firebaseConfig = {
+  apiKey: "YOUR_NEW_API_KEY", // Get from Firebase Console
+  authDomain: "cornerof-nyc-a5faf.firebaseapp.com",
+  projectId: "cornerof-nyc-a5faf",
+  storageBucket: "cornerof-nyc-a5faf.firebasestorage.app",
+  messagingSenderId: "YOUR_NEW_SENDER_ID", // Get from Firebase Console
+  appId: "YOUR_NEW_APP_ID" // Get from Firebase Console
+};
+
+// Also update .firebaserc:
+{
+  "projects": {
+    "default": "cornerof-nyc-a5faf"
+  }
+}

@@ -1,79 +1,81 @@
 #!/usr/bin/env node
 
 /**
- * Script to encode Firebase service account JSON to base64
- * Usage: node scripts/encode-service-account.js path/to/service-account.json
+ * Service Account Encoder
+ * Encodes Firebase service account JSON to base64 for environment variables
  */
 
 const fs = require('fs');
 const path = require('path');
 
-function main() {
-  const args = process.argv.slice(2);
-  
-  if (args.length === 0) {
-    console.log('📋 Firebase Service Account Base64 Encoder');
-    console.log('');
-    console.log('Usage:');
-    console.log('  node scripts/encode-service-account.js <path-to-service-account.json>');
-    console.log('');
-    console.log('Example:');
-    console.log('  node scripts/encode-service-account.js ./cornerof-nyc-firebase-adminsdk.json');
-    console.log('');
-    console.log('This will output the base64 encoded string that you can use as');
-    console.log('the FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable.');
-    process.exit(1);
-  }
-
-  const filePath = args[0];
-  
-  if (!fs.existsSync(filePath)) {
-    console.error('❌ File not found:', filePath);
-    console.error('');
-    console.error('Make sure the path to your service account JSON file is correct.');
-    process.exit(1);
-  }
-
+function encodeServiceAccount(filePath) {
   try {
-    // Read the service account JSON file
-    const serviceAccountJson = fs.readFileSync(filePath, 'utf8');
-    
-    // Validate it's valid JSON
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    
-    // Check required fields
-    const requiredFields = ['type', 'project_id', 'private_key', 'client_email'];
-    const missingFields = requiredFields.filter(field => !serviceAccount[field]);
-    
-    if (missingFields.length > 0) {
-      console.error('❌ Invalid service account JSON. Missing fields:', missingFields.join(', '));
+    if (!fs.existsSync(filePath)) {
+      console.error(`❌ Service account file not found: ${filePath}`);
       process.exit(1);
     }
+
+    const serviceAccountJson = fs.readFileSync(filePath, 'utf8');
     
+    // Validate JSON
+    try {
+      const parsed = JSON.parse(serviceAccountJson);
+      if (!parsed.project_id || !parsed.private_key || !parsed.client_email) {
+        console.error('❌ Invalid service account JSON: missing required fields');
+        process.exit(1);
+      }
+      console.log(`✅ Service account validated for project: ${parsed.project_id}`);
+    } catch (error) {
+      console.error('❌ Invalid JSON format in service account file');
+      process.exit(1);
+    }
+
     // Encode to base64
-    const base64 = Buffer.from(serviceAccountJson).toString('base64');
+    const base64Encoded = Buffer.from(serviceAccountJson).toString('base64');
     
-    console.log('✅ Service account JSON encoded successfully!');
-    console.log('');
-    console.log('📋 Copy this base64 string and add it as FIREBASE_SERVICE_ACCOUNT_BASE64 environment variable:');
-    console.log('');
-    console.log('=' .repeat(80));
-    console.log(base64);
-    console.log('=' .repeat(80));
-    console.log('');
-    console.log('🔧 Firebase App Hosting Setup:');
-    console.log('1. Go to Firebase Console → App Hosting → Your App → Settings');
-    console.log('2. Add environment variable: FIREBASE_SERVICE_ACCOUNT_BASE64');
-    console.log('3. Paste the base64 string above as the value');
-    console.log('4. Redeploy your application');
-    console.log('');
-    console.log('Project ID:', serviceAccount.project_id);
-    console.log('Service Account Email:', serviceAccount.client_email);
+    console.log('\n🔐 Base64 Encoded Service Account:');
+    console.log('=====================================');
+    console.log(base64Encoded);
+    console.log('=====================================\n');
+    
+    console.log('📋 Add this to your environment variables:');
+    console.log(`FIREBASE_SERVICE_ACCOUNT_BASE64=${base64Encoded}`);
+    
+    // Save to file for convenience
+    const outputPath = path.join(path.dirname(filePath), 'service-account-base64.txt');
+    fs.writeFileSync(outputPath, base64Encoded);
+    console.log(`\n💾 Base64 string saved to: ${outputPath}`);
+    
+    return base64Encoded;
     
   } catch (error) {
-    console.error('❌ Error processing service account file:', error.message);
+    console.error('❌ Error encoding service account:', error.message);
     process.exit(1);
   }
 }
 
-main();
+function main() {
+  const args = process.argv.slice(2);
+  
+  if (args.length === 0) {
+    console.log('🔐 Firebase Service Account Encoder');
+    console.log('=====================================');
+    console.log('Usage: node encode-service-account.js <path-to-service-account.json>');
+    console.log('');
+    console.log('Example:');
+    console.log('  node encode-service-account.js keys/service-account.json');
+    console.log('');
+    console.log('This will encode your Firebase service account JSON to base64');
+    console.log('for use in environment variables like FIREBASE_SERVICE_ACCOUNT_BASE64');
+    process.exit(0);
+  }
+  
+  const filePath = args[0];
+  encodeServiceAccount(filePath);
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = { encodeServiceAccount };

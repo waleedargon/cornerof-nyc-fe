@@ -1,6 +1,13 @@
 {
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "apphosting": {
-    "backendId": "cornerof-nyk",
+    "backendId": "cornerof-nyc-a5faf",
     "rootDir": "/",
     "ignore": [
       "node_modules",

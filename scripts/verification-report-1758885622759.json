@@ -1,0 +1,81 @@
+{
+  "timestamp": "2025-09-26T11:20:22.759Z",
+  "sourceProject": "cornerof-nyc",
+  "targetProject": "cornerof-nyc-a5faf",
+  "results": [
+    {
+      "collection": "users",
+      "sourceCount": 45,
+      "targetCount": 45,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "groups",
+      "sourceCount": 13,
+      "targetCount": 13,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "matches",
+      "sourceCount": 3,
+      "targetCount": 3,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "invitations",
+      "sourceCount": 10,
+      "targetCount": 10,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "messages",
+      "sourceCount": 0,
+      "targetCount": 0,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "reports",
+      "sourceCount": 4,
+      "targetCount": 4,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "venues",
+      "sourceCount": 5,
+      "targetCount": 5,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "collection": "votes",
+      "sourceCount": 1,
+      "targetCount": 1,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "service": "Authentication",
+      "sourceUserCount": 43,
+      "targetUserCount": 43,
+      "status": "MATCH",
+      "issues": []
+    },
+    {
+      "service": "Storage",
+      "status": "ERROR",
+      "error": "The specified bucket does not exist."
+    }
+  ],
+  "summary": {
+    "totalChecks": 10,
+    "passed": 9,
+    "failed": 0,
+    "errors": 1
+  }
+}

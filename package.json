@@ -9,7 +9,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:setup": "node scripts/setup-migration.js",
+    "migrate:firebase": "node scripts/firebase-migration.js",
+    "migrate:fix": "node scripts/fix-migration-issues.js",
+    "migrate:storage": "node scripts/storage-migration-workaround.js",
+    "migrate:verify": "node scripts/verify-migration.js",
+    "encode:service-account": "node scripts/encode-service-account.js",
+    "deploy:build": "npm run build",
+    "deploy:firebase": "firebase deploy",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "deploy:storage": "firebase deploy --only storage",
+    "deploy:all": "npm run deploy:build && firebase deploy"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

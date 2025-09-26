@@ -7,12 +7,12 @@ import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAVdkQNNZAWXamVsITY37XF7Msq9X1iyt8",
-  authDomain: "cornerof-nyc.firebaseapp.com",
-  projectId: "cornerof-nyc",
-  storageBucket: "cornerof-nyc.firebasestorage.app",
-  messagingSenderId: "410559076966",
-  appId: "1:410559076966:web:1868eed42791340f6b6ba7"
+  apiKey: "AIzaSyDBc68gxtE_YZLwfzeXEWJA5XY1BSJyrZ0",
+  authDomain: "cornerof-nyc-a5faf.firebaseapp.com",
+  projectId: "cornerof-nyc-a5faf",
+  storageBucket: "cornerof-nyc-a5faf.firebasestorage.app",
+  messagingSenderId: "648028746747",
+  appId: "1:648028746747:web:9e2242c864fc1a12a0d15e"
 };
 
 // Initialize Firebase

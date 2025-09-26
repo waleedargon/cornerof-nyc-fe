@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isGroupMember(groupData) {
+      return request.auth.uid in groupData.members;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated(); // Allow reading other users for group functionality
+    }
+    
+    // Groups collection
+    match /groups/{groupId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        // Group creator can modify
+        resource.data.creator == /databases/$(database)/documents/users/$(request.auth.uid) ||
+        // Group members can update certain fields
+        request.auth.uid in resource.data.members
+      );
+      
+      // Subcollections for groups
+      match /swipes/{swipeId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    
+    // Matches collection
+    match /matches/{matchId} {
+      allow read, write: if isAuthenticated();
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    
+    // Invitations collection
+    match /invitations/{invitationId} {
+      allow read, write: if isAuthenticated();
+      
+      // Votes subcollection for democracy mode
+      match /votes/{voteId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    
+    // Reports collection (more restricted)
+    match /reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        resource.data.reportedBy == /databases/$(database)/documents/users/$(request.auth.uid)
+      );
+    }
+    
+    // Venues collection (admin managed, but readable by all)
+    match /venues/{venueId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Add admin check here if needed
+    }
+    
+    // Generic messages collection (for chat)
+    match /messages/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Votes collection (for democracy mode)
+    match /votes/{voteId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
