@@ -124,8 +124,9 @@ export function GroupCard({
                     <OptimizedImage
                       src={userGroup.pictureUrl}
                       alt={userGroup.name}
-                      fill
-                      className="object-cover"
+                      width={80}
+                      height={80}
+                      className="object-cover w-full h-full"
                       sizes="80px"
                     />
                   ) : (

@@ -377,11 +377,26 @@ export async function findPotentialMatches(userGroupId: string): Promise<Group[]
         // Safely process members array
         let safeMembers: any[] = [];
         if (Array.isArray(fullData.members)) {
-          safeMembers = fullData.members.map((member: any) => {
+          const memberPromises = fullData.members.map(async (member: any) => {
             if (member && typeof member === 'object') {
-              // If it's a DocumentReference, create a safe object
+              // If it's a DocumentReference, resolve it
               if (member.id && member.path) {
-                return { id: member.id, name: "", avatarUrl: "" };
+                try {
+                  const memberDoc = await getDoc(member);
+                  if (memberDoc.exists()) {
+                    const memberData = memberDoc.data();
+                    return {
+                      id: memberDoc.id,
+                      name: memberData.name || "",
+                      avatarUrl: memberData.avatarUrl || ""
+                    };
+                  } else {
+                    return { id: member.id, name: "", avatarUrl: "" };
+                  }
+                } catch (error) {
+                  console.error('Error resolving member reference:', error);
+                  return { id: member.id, name: "", avatarUrl: "" };
+                }
               }
               // If it's already a user object, keep safe fields only
               return {
@@ -392,14 +407,31 @@ export async function findPotentialMatches(userGroupId: string): Promise<Group[]
             }
             return { id: "", name: "", avatarUrl: "" };
           });
+          
+          safeMembers = await Promise.all(memberPromises);
         }
         
         // Safely process creator
         let safeCreator: any = { id: "", name: "", avatarUrl: "" };
         if (fullData.creator && typeof fullData.creator === 'object') {
           if (fullData.creator.id && fullData.creator.path) {
-            // It's a DocumentReference
-            safeCreator = { id: fullData.creator.id, name: "", avatarUrl: "" };
+            // It's a DocumentReference - resolve it
+            try {
+              const creatorDoc = await getDoc(fullData.creator);
+              if (creatorDoc.exists()) {
+                const creatorData = creatorDoc.data();
+                safeCreator = {
+                  id: creatorDoc.id,
+                  name: creatorData.name || "",
+                  avatarUrl: creatorData.avatarUrl || ""
+                };
+              } else {
+                safeCreator = { id: fullData.creator.id, name: "Unknown", avatarUrl: "" };
+              }
+            } catch (error) {
+              console.error('Error resolving creator reference:', error);
+              safeCreator = { id: fullData.creator.id, name: "Unknown", avatarUrl: "" };
+            }
           } else {
             // It's already a user object
             safeCreator = {

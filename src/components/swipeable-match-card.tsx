@@ -142,20 +142,25 @@ export function SwipeableMatchCard({ match, onInvite, onPass }: SwipeableMatchCa
       >
         <div className="flex h-full bg-white">
           {/* Group Picture */}
-          <div className="w-32 flex-shrink-0 relative bg-gradient-to-br from-blue-100 to-purple-100">
+          <div className="w-32 h-full flex-shrink-0 relative bg-gradient-to-br from-blue-100 to-purple-100">
             {match.pictureUrl ? (
-              <OptimizedImage
-                src={match.pictureUrl}
-                alt={match.name}
-                fill
-                className="object-cover"
-                sizes="128px"
-                quality={80}
-              />
+              <>
+                <OptimizedImage
+                  src={match.pictureUrl}
+                  alt={match.name}
+                  width={128}
+                  height={200}
+                  className="object-cover w-full h-full"
+                  sizes="128px"
+                  quality={80}
+                />
+              </>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <Users className="h-12 w-12 text-gray-400" />
-              </div>
+              <>
+                <div className="flex items-center justify-center h-full">
+                  <Users className="h-12 w-12 text-gray-400" />
+                </div>
+              </>
             )}
             
             {/* Group size badge */}
