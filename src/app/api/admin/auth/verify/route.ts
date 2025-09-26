@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from '@/lib/firebase-admin';
 
-// Add the admin UIDs here
-const ADMIN_UIDS = ['f3GrmTj4zpSs7iIMhj1K0fN7pAr1'];
+// Admin UIDs whitelist (legacy fallback). Prefer custom claims (isAdmin=true).
+const ADMIN_UIDS = ['846uEyRPtnXrgRyLY8GlGFpwFrL2'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,13 +23,17 @@ export async function POST(request: NextRequest) {
     const decodedToken = await adminAuth.verifyIdToken(token);
     const uid = decodedToken.uid;
 
-    // Check if user is an admin
-    if (!ADMIN_UIDS.includes(uid)) {
+    // Check if user is an admin via custom claims or fallback UID whitelist
+    const userRecord = await adminAuth.getUser(uid);
+    const hasAdminClaim = userRecord.customClaims?.isAdmin === true;
+    if (!hasAdminClaim && !ADMIN_UIDS.includes(uid)) {
       return NextResponse.json({ error: 'Access denied. User is not an admin.' }, { status: 403 });
     }
 
-    // Set custom claims for admin
-    await adminAuth.setCustomUserClaims(uid, { isAdmin: true });
+    // Ensure custom claim is set for future checks (idempotent)
+    if (!hasAdminClaim) {
+      await adminAuth.setCustomUserClaims(uid, { ...(userRecord.customClaims || {}), isAdmin: true });
+    }
 
     return NextResponse.json({ 
       success: true, 
