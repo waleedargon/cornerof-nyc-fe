@@ -26,7 +26,7 @@ async function initializeFirebaseAdmin() {
     let serviceAccount;
     
     // Method 1: Try Secret Manager (for production deployment)
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    const serviceAccountJson = process.env.SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     
     // Method 2: Try base64 encoded env var (for local development)
     const serviceAccountBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
@@ -70,7 +70,7 @@ async function initializeFirebaseAdmin() {
       console.error("   - Use the base64 encoded service account JSON");
       console.error("📋 For production deployment:");
       console.error("   - Service account should be available via Firebase Secret Manager");
-      console.error("   - Secret name: 'firebase-service-account'");
+      console.error("   - Secret name: 'firebase-service-account' with env var: 'SERVICE_ACCOUNT_JSON'");
       return;
     }
 

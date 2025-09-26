@@ -2,7 +2,7 @@ runConfig:
   minInstances: 0
 
 env:
-  - variable: FIREBASE_SERVICE_ACCOUNT_JSON
+  - variable: SERVICE_ACCOUNT_JSON
     secret: firebase-service-account
     availability:
       - BUILD
