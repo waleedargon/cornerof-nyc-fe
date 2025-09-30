@@ -100,6 +100,58 @@ export function VerifyOTPForm() {
     }
   }, [isClient, toast]);
 
+  // Function to execute reCAPTCHA Enterprise
+  const executeRecaptcha = async (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (typeof window !== 'undefined' && (window as any).grecaptcha?.enterprise) {
+        (window as any).grecaptcha.enterprise.ready(async () => {
+          try {
+            const token = await (window as any).grecaptcha.enterprise.execute('6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n', {
+              action: 'PHONE_RESEND'
+            });
+            resolve(token);
+          } catch (error) {
+            console.error('reCAPTCHA execution failed:', error);
+            resolve(null);
+          }
+        });
+      } else {
+        console.log('reCAPTCHA Enterprise not loaded, using Firebase fallback');
+        resolve(null);
+      }
+    });
+  };
+
+  // Function to verify reCAPTCHA token on server
+  const verifyRecaptchaToken = async (token: string, action: string = 'PHONE_RESEND'): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          expectedAction: action,
+          siteKey: '6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n'
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('reCAPTCHA server verification failed:', result);
+        return false;
+      }
+
+      console.log('reCAPTCHA verification successful:', result);
+      return result.success && result.valid;
+    } catch (error) {
+      console.error('Error verifying reCAPTCHA token:', error);
+      return false;
+    }
+  };
+
   // Function to send OTP
   const handleSendOTP = useCallback(async (isResend = false) => {
     if (!phone) {
@@ -114,6 +166,25 @@ export function VerifyOTPForm() {
     }
 
     try {
+      // Execute reCAPTCHA Enterprise first
+      const recaptchaToken = await executeRecaptcha();
+      
+      // Verify reCAPTCHA token on server if we got one
+      if (recaptchaToken) {
+        const isRecaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'PHONE_RESEND');
+        if (!isRecaptchaValid) {
+          toast({
+            title: 'Security Verification Failed',
+            description: 'Please try again. If the problem persists, contact support.',
+            variant: 'destructive',
+          });
+          if (isResend) setResendLoading(false);
+          else setLoading(false);
+          return;
+        }
+        console.log('reCAPTCHA verification passed for resend');
+      }
+      
       const verifier = window.recaptchaVerifier;
       if (!verifier) {
         throw new Error('RecaptchaVerifier not initialized.');
@@ -199,9 +270,29 @@ export function VerifyOTPForm() {
   }, []);
 
   useEffect(() => {
-    // Only run this when isClient is true and phone is available
+    // Check if OTP was already sent from signup page
     if (isClient && phone) {
-      handleSendOTP(false); // Initial OTP send
+      // Check if we already have a confirmation result from signup page
+      if (window.confirmationResult) {
+        console.log('OTP already sent from signup page');
+        toast({
+          title: 'OTP Ready!',
+          description: 'Please check your phone for the verification code.',
+        });
+        setCountdown(30);
+        const timer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        // If no confirmation result, send OTP (fallback)
+        handleSendOTP(false);
+      }
     }
   }, [isClient, phone, handleSendOTP]);
 

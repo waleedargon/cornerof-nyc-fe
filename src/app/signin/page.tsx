@@ -10,23 +10,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ChevronLeft } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { PhoneNumberInput } from '@/components/ui/phone-number-input';
+import { InternationalPhoneInput } from '@/components/ui/international-phone-input';
 import type { E164Number } from 'libphonenumber-js/core';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form } from '@/components/ui/form';
 import { Logo } from '@/components/logo';
+import { internationalPhoneSchema } from '@/lib/phone-validation';
 
 const FormSchema = z.object({
-  phone: z.string()
-    .min(1, 'Phone number is required.')
-    .refine((phone) => {
-      // Phone should be in E164 format: +15551234567 (11 digits total)
-      return phone.startsWith('+1') && phone.length === 12 && /^\+1\d{10}$/.test(phone);
-    }, {
-      message: 'Please enter a valid US phone number.',
-    }),
+  phone: internationalPhoneSchema,
 });
 
 
@@ -96,7 +90,7 @@ export default function SignInPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSignIn)} className="space-y-4">
-                <PhoneNumberInput name="phone" control={form.control} label="Phone Number" />
+                <InternationalPhoneInput name="phone" control={form.control} label="Phone Number" defaultCountry="US" />
                 <Button type="submit" disabled={loading} className="w-full" size="lg">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Sign In

@@ -1,9 +1,18 @@
 runConfig:
   minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
 
 env:
   - variable: SERVICE_ACCOUNT_JSON
     secret: firebase-service-account
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: RECAPTCHA_API_KEY
+    secret: RECAPTCHA_API_KEY
     availability:
       - BUILD
       - RUNTIME

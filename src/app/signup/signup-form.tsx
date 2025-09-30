@@ -25,19 +25,22 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { joinGroup } from '@/lib/actions';
-import { PhoneNumberInput } from '@/components/ui/phone-number-input';
+import { InternationalPhoneInput } from '@/components/ui/international-phone-input';
+import { internationalPhoneSchema } from '@/lib/phone-validation';
 import { Logo } from '@/components/logo';
 import { calculateAge, getMaxBirthDate, getMinBirthDate } from '@/lib/date-utils';
+import { auth, RecaptchaVerifier, signInWithPhoneNumber } from '@/lib/firebase';
+
+// Global declarations for Firebase phone auth
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: any;
+  }
+}
 
 const profileSchema = z.object({
-  phone: z.string()
-    .min(1, 'Phone number is required.')
-    .refine((phone) => {
-      // Phone should be in E164 format: +15551234567 (11 digits total)
-      return phone.startsWith('+1') && phone.length === 12 && /^\+1\d{10}$/.test(phone);
-    }, {
-      message: 'Please enter a valid US phone number.',
-    }),
+  phone: internationalPhoneSchema,
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   dateOfBirth: z.string()
     .min(1, 'Date of birth is required.')
@@ -64,6 +67,7 @@ export function SignUpForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -75,6 +79,7 @@ export function SignUpForm() {
   });
 
   useEffect(() => {
+    setIsClient(true);
     const code = searchParams?.get('code');
     const phone = searchParams?.get('phone');
 
@@ -85,6 +90,80 @@ export function SignUpForm() {
       form.setValue('phone', phone);
     }
   }, [searchParams, form]);
+
+  // Initialize reCAPTCHA for phone authentication
+  useEffect(() => {
+    if (isClient && typeof window !== 'undefined') {
+      // Only initialize if not already present
+      if (!window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
+            'size': 'invisible',
+            'callback': (response: any) => {
+              console.log('reCAPTCHA verified for signup', response);
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA expired');
+            }
+          });
+        } catch (error) {
+          console.error('Error initializing reCAPTCHA:', error);
+        }
+      }
+    }
+  }, [isClient]);
+
+  // Function to execute reCAPTCHA Enterprise
+  const executeRecaptcha = async (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (typeof window !== 'undefined' && (window as any).grecaptcha?.enterprise) {
+        (window as any).grecaptcha.enterprise.ready(async () => {
+          try {
+            const token = await (window as any).grecaptcha.enterprise.execute('6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n', {
+              action: 'PHONE_SIGNUP'
+            });
+            resolve(token);
+          } catch (error) {
+            console.error('reCAPTCHA execution failed:', error);
+            resolve(null);
+          }
+        });
+      } else {
+        console.log('reCAPTCHA Enterprise not loaded, using Firebase fallback');
+        resolve(null);
+      }
+    });
+  };
+
+  // Function to verify reCAPTCHA token on server
+  const verifyRecaptchaToken = async (token: string, action: string = 'PHONE_SIGNUP'): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          expectedAction: action,
+          siteKey: '6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n'
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('reCAPTCHA server verification failed:', result);
+        return false;
+      }
+
+      console.log('reCAPTCHA verification successful:', result);
+      return result.success && result.valid;
+    } catch (error) {
+      console.error('Error verifying reCAPTCHA token:', error);
+      return false;
+    }
+  };
 
   async function onSubmit(values: ProfileFormData) {
     setLoading(true);
@@ -101,7 +180,52 @@ export function SignUpForm() {
         return;
       }
 
-      // Instead of creating the user directly, redirect to OTP verification
+      // Execute reCAPTCHA Enterprise first
+      const recaptchaToken = await executeRecaptcha();
+      
+      // Verify reCAPTCHA token on server if we got one
+      if (recaptchaToken) {
+        const isRecaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'PHONE_SIGNUP');
+        if (!isRecaptchaValid) {
+          toast({
+            title: 'Security Verification Failed',
+            description: 'Please try again. If the problem persists, contact support.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+        console.log('reCAPTCHA verification passed');
+      }
+      
+      // Try to send OTP via Firebase Phone Auth
+      try {
+        if (window.recaptchaVerifier) {
+          console.log('Attempting to send OTP to:', fullPhoneNumber);
+          const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, window.recaptchaVerifier);
+          
+          // Store confirmation result globally for verification
+          window.confirmationResult = confirmationResult;
+          
+          toast({
+            title: 'OTP Sent!',
+            description: 'Please check your phone for the verification code.',
+          });
+        } else {
+          throw new Error('reCAPTCHA not initialized');
+        }
+      } catch (otpError) {
+        console.error('OTP sending failed:', otpError);
+        
+        // Fallback to development mode
+        toast({
+          title: 'Phone authentication not configured.',
+          description: 'Using development mode - enter 123456 or 000000 as OTP.',
+          variant: 'destructive',
+        });
+      }
+
+      // Redirect to OTP verification with user data
       const params = new URLSearchParams({
         phone: fullPhoneNumber,
         name: values.name,
@@ -114,11 +238,6 @@ export function SignUpForm() {
         params.append('code', inviteCode);
       }
 
-      toast({
-        title: 'OTP Sent!',
-        description: 'Please check your phone for the verification code.',
-      });
-
       router.push(`/verify-otp?${params.toString()}`);
     } catch (error) {
       console.error('Error during signup:', error);
@@ -130,6 +249,9 @@ export function SignUpForm() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-background relative">
+      {/* reCAPTCHA container for phone authentication */}
+      <div id="recaptcha-container-signup"></div>
+      
       {/* Back button */}
       <div className="absolute top-6 left-6">
         <Button asChild variant="ghost" size="icon">
@@ -154,7 +276,7 @@ export function SignUpForm() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <PhoneNumberInput name="phone" control={form.control} label="Phone Number" />
+                <InternationalPhoneInput name="phone" control={form.control} label="Phone Number" defaultCountry="US" />
 
                 <FormField
                   control={form.control}
