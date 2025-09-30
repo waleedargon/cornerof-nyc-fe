@@ -166,10 +166,10 @@ export function VerifyOTPForm() {
     }
 
     try {
-      // Execute reCAPTCHA Enterprise first
+      // Execute reCAPTCHA Enterprise and verify immediately for resend
+      // Note: Each reCAPTCHA token can only be used once
       const recaptchaToken = await executeRecaptcha();
       
-      // Verify reCAPTCHA token on server if we got one
       if (recaptchaToken) {
         const isRecaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'PHONE_RESEND');
         if (!isRecaptchaValid) {

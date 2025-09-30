@@ -7,7 +7,7 @@
     "rules": "storage.rules"
   },
   "apphosting": {
-    "backendId": "cornerof-nyc-a5faf",
+    "backendId": "cornerofyc-bk",
     "rootDir": "/",
     "ignore": [
       "node_modules",
@@ -15,6 +15,7 @@
       "firebase-debug.log",
       "firebase-debug.*.log",
       "functions"
-    ]
+    ],
+    "alwaysDeployFromSource": true
   }
 }

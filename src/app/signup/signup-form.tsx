@@ -138,7 +138,8 @@ export function SignUpForm() {
   // Function to verify reCAPTCHA token on server
   const verifyRecaptchaToken = async (token: string, action: string = 'PHONE_SIGNUP'): Promise<boolean> => {
     try {
-      const response = await fetch('/api/verify-recaptcha', {
+      // Try Enterprise API first
+      let response = await fetch('/api/verify-recaptcha', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,14 +151,35 @@ export function SignUpForm() {
         }),
       });
 
-      const result = await response.json();
+      let result = await response.json();
+      
+      if (response.ok && result.success && result.valid) {
+        console.log('reCAPTCHA Enterprise verification successful:', result);
+        return true;
+      }
+
+      // If Enterprise API fails, try Firebase-based verification
+      console.log('Enterprise API failed, trying Firebase-based verification:', result);
+      
+      response = await fetch('/api/verify-recaptcha-firebase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          expectedAction: action
+        }),
+      });
+
+      result = await response.json();
       
       if (!response.ok) {
-        console.error('reCAPTCHA server verification failed:', result);
+        console.error('Both reCAPTCHA verifications failed:', result);
         return false;
       }
 
-      console.log('reCAPTCHA verification successful:', result);
+      console.log('Firebase reCAPTCHA verification successful:', result);
       return result.success && result.valid;
     } catch (error) {
       console.error('Error verifying reCAPTCHA token:', error);
@@ -180,10 +202,10 @@ export function SignUpForm() {
         return;
       }
 
-      // Execute reCAPTCHA Enterprise first
+      // Execute reCAPTCHA Enterprise and verify immediately
+      // Note: reCAPTCHA tokens can only be used once, so we generate and verify in one step
       const recaptchaToken = await executeRecaptcha();
       
-      // Verify reCAPTCHA token on server if we got one
       if (recaptchaToken) {
         const isRecaptchaValid = await verifyRecaptchaToken(recaptchaToken, 'PHONE_SIGNUP');
         if (!isRecaptchaValid) {

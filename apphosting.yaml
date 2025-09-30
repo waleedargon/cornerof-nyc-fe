@@ -11,8 +11,8 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: RECAPTCHA_API_KEY
-    secret: RECAPTCHA_API_KEY
+  - variable: GOOGLE_APPLICATION_CREDENTIALS
+    secret: firebase-service-account
     availability:
       - BUILD
       - RUNTIME
