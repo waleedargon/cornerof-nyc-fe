@@ -37,12 +37,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import type { User, GroupIntent, GroupMode } from '@/lib/types';
 import { generateInviteCode } from '@/lib/utils';
 import { ImageUpload } from '@/components/image-upload';
 import { uploadGroupImage, deleteFile } from '@/lib/storage';
+import { useNeighborhoods } from '@/hooks/use-neighborhoods';
+import { useVibes } from '@/hooks/use-vibes';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Group name must be at least 3 characters.'),
@@ -66,6 +69,8 @@ export function AddGroupDialog({ user }: { user: User }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const { neighborhoodOptions, loading: neighborhoodsLoading } = useNeighborhoods();
+  const { vibeOptions, loading: vibesLoading } = useVibes();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -274,7 +279,13 @@ export function AddGroupDialog({ user }: { user: User }) {
                   <FormItem>
                     <FormLabel>Neighborhood</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Greenwich Village" {...field} />
+                      <SimpleSelect
+                        options={neighborhoodOptions}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select a neighborhood..."
+                        disabled={neighborhoodsLoading || loading}
+                      />
                     </FormControl>
                     <FormDescription>
                       What area are you looking to meet in?
@@ -291,7 +302,13 @@ export function AddGroupDialog({ user }: { user: User }) {
                   <FormItem>
                     <FormLabel>Vibe</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="e.g. Chill, competitive, and fun" {...field} />
+                      <SimpleSelect
+                        options={vibeOptions}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select a vibe..."
+                        disabled={vibesLoading || loading}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

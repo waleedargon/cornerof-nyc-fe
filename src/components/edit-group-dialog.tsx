@@ -38,9 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import type { Group, GroupIntent, GroupMode } from '@/lib/types';
+import { useNeighborhoods } from '@/hooks/use-neighborhoods';
+import { useVibes } from '@/hooks/use-vibes';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Group name must be at least 3 characters.'),
@@ -70,6 +73,8 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(group.pictureUrl || null);
   const { toast } = useToast();
+  const { neighborhoodOptions, loading: neighborhoodsLoading } = useNeighborhoods();
+  const { vibeOptions, loading: vibesLoading } = useVibes();
 
   // Use external control if provided, otherwise use internal state
   const isOpen = open !== undefined ? open : internalOpen;
@@ -287,7 +292,13 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
                 <FormItem>
                   <FormLabel>Neighborhood</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Greenwich Village" {...field} />
+                    <SimpleSelect
+                      options={neighborhoodOptions}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select a neighborhood..."
+                      disabled={neighborhoodsLoading || loading}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -301,10 +312,12 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
                 <FormItem>
                   <FormLabel>Group Vibe</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Describe your group's vibe and what you're looking for..."
-                      className="resize-none"
-                      {...field}
+                    <SimpleSelect
+                      options={vibeOptions}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select a vibe..."
+                      disabled={vibesLoading || loading}
                     />
                   </FormControl>
                   <FormMessage />

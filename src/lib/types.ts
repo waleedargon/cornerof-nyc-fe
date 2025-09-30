@@ -102,4 +102,20 @@ export type Report = {
   createdAt: Timestamp | Date; // Allow both for flexibility
   status: 'pending' | 'reviewed' | 'resolved';
 };
+
+export type Neighborhood = {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+};
+
+export type Vibe = {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+};
     

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, User, Tent } from "lucide-react";
+import { Users, User, Tent, MapPin, Tag } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
@@ -12,17 +12,23 @@ async function getCounts() {
     const usersPromise = getDocs(collection(db, 'users'));
     const groupsPromise = getDocs(collection(db, 'groups'));
     const venuesPromise = getDocs(collection(db, 'venues'));
+    const neighborhoodsPromise = getDocs(collection(db, 'neighborhoods'));
+    const vibesPromise = getDocs(collection(db, 'vibes'));
 
-    const [usersSnapshot, groupsSnapshot, venuesSnapshot] = await Promise.all([
+    const [usersSnapshot, groupsSnapshot, venuesSnapshot, neighborhoodsSnapshot, vibesSnapshot] = await Promise.all([
         usersPromise,
         groupsPromise,
-        venuesPromise
+        venuesPromise,
+        neighborhoodsPromise,
+        vibesPromise
     ]);
 
     return {
         users: usersSnapshot.size,
         groups: groupsSnapshot.size,
-        venues: venuesSnapshot.size
+        venues: venuesSnapshot.size,
+        neighborhoods: neighborhoodsSnapshot.size,
+        vibes: vibesSnapshot.size
     };
 }
 
@@ -31,7 +37,7 @@ export default async function AdminDashboard() {
   const counts = await getCounts();
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 md:gap-8 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-5">
       <Link href="/admin/groups">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -70,6 +76,34 @@ export default async function AdminDashboard() {
             <div className="text-2xl font-bold">{counts.venues}</div>
             <p className="text-xs text-muted-foreground">
               Venues in suggestion database
+            </p>
+          </CardContent>
+        </Card>
+      </Link>
+      <Link href="/admin/neighborhoods">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Neighborhoods</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{counts.neighborhoods}</div>
+            <p className="text-xs text-muted-foreground">
+              Available neighborhood options
+            </p>
+          </CardContent>
+        </Card>
+      </Link>
+      <Link href="/admin/vibes">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vibes</CardTitle>
+            <Tag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{counts.vibes}</div>
+            <p className="text-xs text-muted-foreground">
+              Available vibe options
             </p>
           </CardContent>
         </Card>

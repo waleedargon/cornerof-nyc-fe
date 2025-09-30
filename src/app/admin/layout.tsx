@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Users, User, Tent, LayoutDashboard, LogOut, Menu } from "lucide-react";
+import { Users, User, Tent, LayoutDashboard, LogOut, Menu, MapPin, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
@@ -128,6 +128,20 @@ export default function AdminLayout({
         <Tent className="h-5 w-5" />
         Venues
       </Link>
+      <Link
+        href="/admin/neighborhoods"
+        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+      >
+        <MapPin className="h-5 w-5" />
+        Neighborhoods
+      </Link>
+      <Link
+        href="/admin/vibes"
+        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+      >
+        <Tag className="h-5 w-5" />
+        Vibes
+      </Link>
     </>
   );
 
@@ -150,6 +164,14 @@ export default function AdminLayout({
           <Link href="/admin/venues" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
             <Tent className="h-5 w-5" />
             <span className="sr-only">Venues</span>
+          </Link>
+          <Link href="/admin/neighborhoods" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
+            <MapPin className="h-5 w-5" />
+            <span className="sr-only">Neighborhoods</span>
+          </Link>
+          <Link href="/admin/vibes" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
+            <Tag className="h-5 w-5" />
+            <span className="sr-only">Vibes</span>
           </Link>
         </nav>
       </aside>

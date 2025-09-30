@@ -156,7 +156,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-col">
       <Header centerLogo={true} showSignOut={!!user} />
       <div className="flex-1 p-3 sm:p-6 space-y-4 sm:space-y-6">
         {/* My Group */}

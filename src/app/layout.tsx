@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { UserLayout } from "@/components/layout/user-layout";
 
 export const metadata: Metadata = {
   title: 'CORNER OF',
@@ -77,7 +78,9 @@ export default function RootLayout({
       </head>
       <body className="h-full antialiased">
         <div id="root" className="h-full">
-          {children}
+          <UserLayout>
+            {children}
+          </UserLayout>
         </div>
         <Toaster />
         {/* Hydration script */}

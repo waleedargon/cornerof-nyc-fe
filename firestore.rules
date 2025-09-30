@@ -83,5 +83,17 @@ service cloud.firestore {
     match /votes/{voteId} {
       allow read, write: if isAuthenticated();
     }
+    
+    // Neighborhoods collection (read-only for users, admin can write)
+    match /neighborhoods/{neighborhoodId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Add admin check here if needed
+    }
+    
+    // Vibes collection (read-only for users, admin can write)
+    match /vibes/{vibeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Add admin check here if needed
+    }
   }
 }
