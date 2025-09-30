@@ -106,7 +106,7 @@ export function VerifyOTPForm() {
       if (typeof window !== 'undefined' && (window as any).grecaptcha?.enterprise) {
         (window as any).grecaptcha.enterprise.ready(async () => {
           try {
-            const token = await (window as any).grecaptcha.enterprise.execute('6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n', {
+            const token = await (window as any).grecaptcha.enterprise.execute('6Lc_StkrAAAAAF0i5eRw0IWC_cbZF9rxluu4gQio', {
               action: 'PHONE_RESEND'
             });
             resolve(token);
@@ -133,7 +133,7 @@ export function VerifyOTPForm() {
         body: JSON.stringify({
           token,
           expectedAction: action,
-          siteKey: '6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n'
+          siteKey: '6Lc_StkrAAAAAF0i5eRw0IWC_cbZF9rxluu4gQio'
         }),
       });
 

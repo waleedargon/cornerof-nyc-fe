@@ -35,7 +35,7 @@ function getRecaptchaClient() {
  */
 async function createAssessment({
   projectID = "cornerof-nyc-a5faf",
-  recaptchaKey = "6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n",
+  recaptchaKey = "6Lc_StkrAAAAAF0i5eRw0IWC_cbZF9rxluu4gQio",
   token,
   recaptchaAction = "PHONE_SIGNUP",
   userIpAddress,
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     // Use the official Google Cloud reCAPTCHA Enterprise client with enhanced parameters
     const assessment = await createAssessment({
       projectID: "cornerof-nyc-a5faf",
-      recaptchaKey: siteKey || "6LefSdkrAAAAAPP_F6DzKO_0PRWiuoWUCy8epd8n",
+      recaptchaKey: siteKey || "6Lc_StkrAAAAAF0i5eRw0IWC_cbZF9rxluu4gQio",
       token: token,
       recaptchaAction: expectedAction || "PHONE_SIGNUP",
       userIpAddress: userIpAddress,
