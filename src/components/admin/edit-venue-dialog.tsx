@@ -26,10 +26,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { SimpleSelect } from '@/components/ui/simple-select';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import type { Venue } from '@/lib/types';
+import { useNeighborhoods } from '@/hooks/use-neighborhoods';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Venue name must be at least 2 characters.'),
@@ -50,6 +52,7 @@ export function EditVenueDialog({ venue, open, onOpenChange }: EditVenueDialogPr
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { neighborhoodOptions, loading: neighborhoodsLoading } = useNeighborhoods();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -133,7 +136,13 @@ export function EditVenueDialog({ venue, open, onOpenChange }: EditVenueDialogPr
                 <FormItem>
                   <FormLabel>Neighborhood</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Greenwich Village" {...field} />
+                    <SimpleSelect
+                      options={neighborhoodOptions}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Select a neighborhood..."
+                      disabled={neighborhoodsLoading || loading}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
