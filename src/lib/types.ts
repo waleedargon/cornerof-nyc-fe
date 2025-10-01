@@ -118,4 +118,17 @@ export type Vibe = {
   createdAt: Timestamp | Date;
   updatedAt?: Timestamp | Date;
 };
+
+export type AdminLog = {
+  id: string;
+  timestamp: Timestamp | Date;
+  userId?: string;
+  userName?: string;
+  groupId?: string;
+  groupName?: string;
+  matchId?: string;
+  action: 'group_created' | 'group_deleted' | 'match_created' | 'match_deleted' | 'user_joined_group' | 'user_left_group' | 'message_sent' | 'message_reported' | 'venue_created' | 'venue_updated' | 'venue_deleted' | 'neighborhood_created' | 'neighborhood_updated' | 'neighborhood_deleted' | 'vibe_created' | 'vibe_updated' | 'vibe_deleted';
+  details: string;
+  metadata?: Record<string, any>;
+};
     

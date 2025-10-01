@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, ExternalLink, Clock } from 'lucide-react';
+import { MapPin, ExternalLink, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Match } from '@/lib/types';
 
@@ -9,9 +9,29 @@ type VenueSuggestionProps = {
 };
 
 export function VenueSuggestion({ match }: VenueSuggestionProps) {
-
+  // Show "No venue suggestion" message if no venue is provided
   if (!match.venueSuggestion || !match.venueReasoning) {
-    return null;
+    return (
+      <div className="space-y-3">
+        <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 space-y-3">
+          <div className="flex items-center justify-center">
+            <div className="bg-gray-400 p-3 rounded-lg">
+              <AlertCircle className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold text-gray-700">
+              No Venue Suggestion
+            </h3>
+            <p className="text-gray-600 text-sm">
+              There are no admin-created venue suggestions for your neighborhood and vibe combination yet. 
+              Feel free to choose your own meeting spot!
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Format timestamp
@@ -51,9 +71,8 @@ export function VenueSuggestion({ match }: VenueSuggestionProps) {
           
           <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
             <span className="px-2 py-1 bg-gray-100 rounded">
-              $$$
+              Admin Suggestion
             </span>
-            <span>dinner and drinks</span>
           </div>
         </div>
         

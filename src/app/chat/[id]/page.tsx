@@ -33,6 +33,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VenueSuggestion } from '@/components/venue-suggestion';
+import { ChatMembersDialog } from '@/components/chat-members-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { deleteMatch } from '@/lib/actions';
 
@@ -288,12 +289,19 @@ export default function ChatPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          <div className="flex items-center gap-2 text-center">
+          <div className="flex flex-col items-center gap-1 text-center">
             <div className="text-sm">
               <span className="font-semibold text-blue-600">{userGroup.name}</span>
               <span className="text-muted-foreground"> + </span>
               <span className="font-semibold text-blue-600">{otherGroup.name}</span>
             </div>
+            {user && (
+              <ChatMembersDialog 
+                userGroup={userGroup} 
+                otherGroup={otherGroup} 
+                currentUser={user}
+              />
+            )}
           </div>
 
           {/* Delete match button - only show for group creators */}
@@ -312,12 +320,6 @@ export default function ChatPage() {
               <div className="w-8" />
             )
           )}
-        </div>
-
-        <div className="text-center mt-1">
-          <span className="text-xs text-muted-foreground">
-            {userGroup.members.length + otherGroup.members.length} people
-          </span>
         </div>
       </div>
 
@@ -397,7 +399,7 @@ export default function ChatPage() {
       </div> */}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {match.venueSuggestion && <VenueSuggestion match={match} />}
+        <VenueSuggestion match={match} />
 
         {messages.map((message) => {
           const isSender = message.user.id === user.id;

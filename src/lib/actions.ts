@@ -6,6 +6,7 @@ import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, Document
 import { db } from './firebase';
 import type { Group, User, GroupIntent, Vote, Invitation, Report } from "./types";
 import { getVenueSuggestionForMatch } from '@/lib/venue-service';
+import { AdminLogger } from '@/lib/admin-logger';
 
 // Simple in-memory cache for performance
 const matchCache = new Map<string, { matches: Group[]; timestamp: number }>();
@@ -545,28 +546,41 @@ export async function handleMatchDecision(
             ]);
 
             if (existingMatch1.empty && existingMatch2.empty) {
-                 // Fetch the target group's details for the venue suggestion
-                const targetGroupSnap = await getDoc(targetGroupRef);
+                // Get both group data for logging
+                const [userGroupSnap, targetGroupSnap] = await Promise.all([
+                    getDoc(userGroupRef),
+                    getDoc(targetGroupRef)
+                ]);
+                
+                const userGroupData = userGroupSnap.data() as Group;
+                const targetGroupData = targetGroupSnap.data() as Group;
+
+                // Fetch the target group's details for the venue suggestion
                 if (targetGroupSnap.exists()) {
-                    const targetGroupData = targetGroupSnap.data() as Group;
                     const suggestion = await suggestVenue({
                         neighborhood: targetGroupData.neighborhood,
                         vibe: targetGroupData.vibe,
                         groupIntent: targetGroupData.intent,
                     });
 
-                    await addDoc(matchesRef, {
+                    const matchDocRef = await addDoc(matchesRef, {
                         groups: [userGroupRef, targetGroupRef],
                         createdAt: serverTimestamp(),
                         venueSuggestion: suggestion.venueSuggestion,
                         venueReasoning: suggestion.reasoning,
                     });
+
+                    // Log the match creation
+                    await AdminLogger.matchCreated(matchDocRef.id, userGroupData.name, targetGroupData.name);
                 } else {
                      // Fallback if target group data can't be fetched
-                    await addDoc(matchesRef, {
+                    const matchDocRef = await addDoc(matchesRef, {
                         groups: [userGroupRef, targetGroupRef],
                         createdAt: serverTimestamp(),
                     });
+
+                    // Log the match creation
+                    await AdminLogger.matchCreated(matchDocRef.id, userGroupData.name, targetGroupData.name);
                 }
                 return { status: 'match_created', message: 'It\'s a match!' };
             }
@@ -993,6 +1007,11 @@ export async function deleteMatch(matchId: string, userId: string): Promise<{ su
     console.log('Deleting match document...');
     await retryOperation(() => deleteDoc(matchRef));
     
+    // Log the match deletion
+    const user = await getDoc(doc(db, 'users', userId));
+    const userName = user.exists() ? user.data().name : 'Unknown User';
+    await AdminLogger.matchDeleted(matchId, group1Data.name, group2Data.name, userId, userName);
+    
     console.log('Match deletion completed successfully');
     return { success: true, message: 'Match ended successfully. Both groups are now available for new matches.' };
     
@@ -1054,17 +1073,22 @@ export async function addVenueSuggestionToMatch(matchId: string): Promise<void> 
     // Get venue suggestion
     const venueResult = await getVenueSuggestionForMatch(group1Data, group2Data);
     
-    // Update match with venue suggestion
-    const updateData: any = {
-      venueSuggestion: venueResult.venueSuggestion,
-      venueReasoning: venueResult.reasoning
-    };
-    
-    if (venueResult.venueUrl) updateData.venueUrl = venueResult.venueUrl;
-    if (venueResult.venueDescription) updateData.venueDescription = venueResult.venueDescription;
-    
-    await updateDoc(matchRef, updateData);
-    console.log('Venue suggestion added to match:', matchId);
+    // Only update match if we found an admin venue
+    if (venueResult) {
+      const updateData: any = {
+        venueSuggestion: venueResult.venueSuggestion,
+        venueReasoning: venueResult.reasoning
+      };
+      
+      if (venueResult.venueUrl) updateData.venueUrl = venueResult.venueUrl;
+      if (venueResult.venueDescription) updateData.venueDescription = venueResult.venueDescription;
+      
+      await updateDoc(matchRef, updateData);
+      console.log('Admin venue suggestion added to match:', matchId);
+    } else {
+      console.log('No admin venue found for match:', matchId);
+      // Don't add any venue suggestion - the UI will handle showing "no venue" message
+    }
     
   } catch (error) {
     console.error('Error adding venue suggestion to match:', error);

@@ -31,6 +31,7 @@ import { EditGroupDialog } from '@/components/edit-group-dialog';
 import { GroupMembersDialog } from '@/components/group-members-dialog';
 import { InviteDialog } from '@/components/invite-dialog';
 import { AddGroupDialog } from '@/components/add-group-dialog';
+import { JoinGroupDialog } from '@/components/join-group-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import type { Group, User as UserType } from '@/lib/types';
@@ -283,9 +284,12 @@ export function GroupCard({
               You're not in a group yet.
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Create a group to find a match!
+              Create a new group or join an existing one to find a match!
             </p>
-            <div className="flex gap-4">{user && <AddGroupDialog user={user} />}</div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              {user && <AddGroupDialog user={user} />}
+              {user && <JoinGroupDialog user={user} onGroupJoined={onGroupUpdate} />}
+            </div>
           </div>
         )}
       </CardContent>
