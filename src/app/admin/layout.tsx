@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Users, User, Tent, LayoutDashboard, LogOut, Menu, MapPin, Tag, FileText } from "lucide-react";
+import { Users, User, Tent, LayoutDashboard, LogOut, Menu, MapPin, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
@@ -142,13 +142,6 @@ export default function AdminLayout({
         <Tag className="h-5 w-5" />
         Vibes
       </Link>
-      <Link
-        href="/admin/logs"
-        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-      >
-        <FileText className="h-5 w-5" />
-        Activity Logs
-      </Link>
     </>
   );
 
@@ -179,10 +172,6 @@ export default function AdminLayout({
           <Link href="/admin/vibes" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
             <Tag className="h-5 w-5" />
             <span className="sr-only">Vibes</span>
-          </Link>
-          <Link href="/admin/logs" className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8">
-            <FileText className="h-5 w-5" />
-            <span className="sr-only">Activity Logs</span>
           </Link>
         </nav>
       </aside>

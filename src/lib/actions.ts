@@ -6,7 +6,6 @@ import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, Document
 import { db } from './firebase';
 import type { Group, User, GroupIntent, Vote, Invitation, Report } from "./types";
 import { getVenueSuggestionForMatch } from '@/lib/venue-service';
-import { AdminLogger } from '@/lib/admin-logger';
 
 // Simple in-memory cache for performance
 const matchCache = new Map<string, { matches: Group[]; timestamp: number }>();
@@ -546,41 +545,28 @@ export async function handleMatchDecision(
             ]);
 
             if (existingMatch1.empty && existingMatch2.empty) {
-                // Get both group data for logging
-                const [userGroupSnap, targetGroupSnap] = await Promise.all([
-                    getDoc(userGroupRef),
-                    getDoc(targetGroupRef)
-                ]);
-                
-                const userGroupData = userGroupSnap.data() as Group;
-                const targetGroupData = targetGroupSnap.data() as Group;
-
-                // Fetch the target group's details for the venue suggestion
+                 // Fetch the target group's details for the venue suggestion
+                const targetGroupSnap = await getDoc(targetGroupRef);
                 if (targetGroupSnap.exists()) {
+                    const targetGroupData = targetGroupSnap.data() as Group;
                     const suggestion = await suggestVenue({
                         neighborhood: targetGroupData.neighborhood,
                         vibe: targetGroupData.vibe,
                         groupIntent: targetGroupData.intent,
                     });
 
-                    const matchDocRef = await addDoc(matchesRef, {
+                    await addDoc(matchesRef, {
                         groups: [userGroupRef, targetGroupRef],
                         createdAt: serverTimestamp(),
                         venueSuggestion: suggestion.venueSuggestion,
                         venueReasoning: suggestion.reasoning,
                     });
-
-                    // Log the match creation
-                    await AdminLogger.matchCreated(matchDocRef.id, userGroupData.name, targetGroupData.name);
                 } else {
                      // Fallback if target group data can't be fetched
-                    const matchDocRef = await addDoc(matchesRef, {
+                    await addDoc(matchesRef, {
                         groups: [userGroupRef, targetGroupRef],
                         createdAt: serverTimestamp(),
                     });
-
-                    // Log the match creation
-                    await AdminLogger.matchCreated(matchDocRef.id, userGroupData.name, targetGroupData.name);
                 }
                 return { status: 'match_created', message: 'It\'s a match!' };
             }
@@ -1006,11 +992,6 @@ export async function deleteMatch(matchId: string, userId: string): Promise<{ su
     // Step 6: Delete the match document (critical - this must succeed)
     console.log('Deleting match document...');
     await retryOperation(() => deleteDoc(matchRef));
-    
-    // Log the match deletion
-    const user = await getDoc(doc(db, 'users', userId));
-    const userName = user.exists() ? user.data().name : 'Unknown User';
-    await AdminLogger.matchDeleted(matchId, group1Data.name, group2Data.name, userId, userName);
     
     console.log('Match deletion completed successfully');
     return { success: true, message: 'Match ended successfully. Both groups are now available for new matches.' };

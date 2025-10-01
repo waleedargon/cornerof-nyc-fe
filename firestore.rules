@@ -95,11 +95,5 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated(); // Add admin check here if needed
     }
-
-    // Admin logs collection (admin read-only)
-    match /admin_logs/{logId} {
-      allow read: if isAuthenticated(); // Add admin check here if needed
-      allow write: if false; // Only server-side functions can write logs
-    }
   }
 }

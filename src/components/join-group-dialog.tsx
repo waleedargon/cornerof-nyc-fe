@@ -29,7 +29,6 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import type { User, Group } from '@/lib/types';
-import { AdminLogger } from '@/lib/admin-logger';
 
 const formSchema = z.object({
   inviteCode: z.string().min(6, 'Invite code must be at least 6 characters.').max(20, 'Invite code must be less than 20 characters.'),
@@ -113,9 +112,6 @@ export function JoinGroupDialog({ user, onGroupJoined }: JoinGroupDialogProps) {
       await updateDoc(groupRef, {
         members: arrayUnion(userRef)
       });
-
-      // Log the activity
-      await AdminLogger.userJoinedGroup(groupData.id, groupData.name, user.id, user.name);
 
       toast({
         title: 'Success!',
