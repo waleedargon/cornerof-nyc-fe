@@ -16,8 +16,8 @@ import { calculateNeighborhoodSimilarity } from '@/lib/venue-matching';
 
 
 const SuggestVenueInputSchema = z.object({
-  neighborhood: z.string().describe('The preferred neighborhood for the group.'),
-  vibe: z.string().describe('The desired vibe or atmosphere of the venue.'),
+  neighborhoods: z.array(z.string()).describe('The preferred neighborhoods for the group.'),
+  vibes: z.array(z.string()).describe('The desired vibes or atmosphere of the venue.'),
   groupIntent: z.enum(['all-boys', 'all-girls', 'mixed', 'any']).describe('The group composition intent: all-boys, all-girls, mixed (boys & girls), or any (open to all).'),
 });
 export type SuggestVenueInput = z.infer<typeof SuggestVenueInputSchema>;
@@ -89,11 +89,11 @@ Your goal is to suggest a specific, real venue for them to meet up.
    - "all-girls": Wine bars, brunch spots, trendy cafes, rooftop lounges
    - "mixed": Casual restaurants, coffee shops, cocktail bars, food halls
    - "any": Popular restaurants, well-known cafes, versatile venues
-6.  Match the vibe: "chill" = casual spots, "party" = lively venues, "upscale" = fancy restaurants, etc.
+6.  Match the vibes - "chill" = casual spots, "party" = lively venues, "upscale" = fancy restaurants, etc.
 7.  Your reasoning should be warm, concise, and explain why this venue works for their specific vibe and composition.
 
-Neighborhood: {{{neighborhood}}}
-Vibe: {{{vibe}}}
+Neighborhoods: {{{neighborhoods}}}
+Vibes: {{{vibes}}}
 Group Composition: {{{groupIntent}}}
 
 Always respond with a complete JSON object including venueSuggestion, reasoning, and optionally venueUrl and venueDescription.

@@ -59,6 +59,7 @@ export function calculateNeighborhoodSimilarity(neighborhood1: string, neighborh
 
 /**
  * Find venues that match the combined preferences of two groups
+ * Updated to handle multiple neighborhoods per group
  */
 export async function findMatchingVenues(group1: Group, group2: Group): Promise<Venue[]> {
   try {
@@ -71,12 +72,27 @@ export async function findMatchingVenues(group1: Group, group2: Group): Promise<
     
     if (allVenues.length === 0) return [];
     
+    // Get neighborhoods for both groups (handle legacy and new array fields)
+    const group1Neighborhoods = group1.neighborhoods || (group1.neighborhood ? [group1.neighborhood] : []);
+    const group2Neighborhoods = group2.neighborhoods || (group2.neighborhood ? [group2.neighborhood] : []);
+    
     // Score each venue based on neighborhood similarity
     const scoredVenues = allVenues.map(venue => {
-      const group1Score = calculateNeighborhoodSimilarity(venue.neighborhood, group1.neighborhood);
-      const group2Score = calculateNeighborhoodSimilarity(venue.neighborhood, group2.neighborhood);
+      // Find best match for group1 (highest score among all their neighborhoods)
+      let group1Score = 0;
+      for (const neighborhood of group1Neighborhoods) {
+        const score = calculateNeighborhoodSimilarity(venue.neighborhood, neighborhood);
+        group1Score = Math.max(group1Score, score);
+      }
       
-      // Combined score (average of both groups)
+      // Find best match for group2 (highest score among all their neighborhoods)
+      let group2Score = 0;
+      for (const neighborhood of group2Neighborhoods) {
+        const score = calculateNeighborhoodSimilarity(venue.neighborhood, neighborhood);
+        group2Score = Math.max(group2Score, score);
+      }
+      
+      // Combined score (average of both groups' best matches)
       const combinedScore = (group1Score + group2Score) / 2;
       
       return {
@@ -114,6 +130,7 @@ export async function getBestVenueSuggestion(group1: Group, group2: Group): Prom
 
 /**
  * Generate reasoning for why a venue was suggested
+ * Updated to handle multiple neighborhoods and vibes
  */
 export function generateVenueReasoning(
   venue: Venue, 
@@ -121,15 +138,36 @@ export function generateVenueReasoning(
   group2: Group,
   isAIGenerated: boolean = false
 ): string {
+  // Get neighborhoods and vibes (handle legacy and new array fields)
+  const group1Neighborhoods = group1.neighborhoods || (group1.neighborhood ? [group1.neighborhood] : []);
+  const group2Neighborhoods = group2.neighborhoods || (group2.neighborhood ? [group2.neighborhood] : []);
+  const group1Vibes = group1.vibes || (group1.vibe ? [group1.vibe] : []);
+  const group2Vibes = group2.vibes || (group2.vibe ? [group2.vibe] : []);
+  
   if (isAIGenerated) {
-    return `AI suggested this venue based on your combined preferences for ${group1.vibe} and ${group2.vibe} vibes in the ${group1.neighborhood}/${group2.neighborhood} area.`;
+    const combinedVibes = [...new Set([...group1Vibes, ...group2Vibes])].join(', ');
+    const combinedNeighborhoods = [...new Set([...group1Neighborhoods, ...group2Neighborhoods])].join('/');
+    return `AI suggested this venue based on your combined preferences for ${combinedVibes} vibes in the ${combinedNeighborhoods} area.`;
   }
   
-  const group1Score = calculateNeighborhoodSimilarity(venue.neighborhood, group1.neighborhood);
-  const group2Score = calculateNeighborhoodSimilarity(venue.neighborhood, group2.neighborhood);
+  // Find best neighborhood matches
+  let group1Score = 0;
+  let group2Score = 0;
+  
+  for (const neighborhood of group1Neighborhoods) {
+    const score = calculateNeighborhoodSimilarity(venue.neighborhood, neighborhood);
+    group1Score = Math.max(group1Score, score);
+  }
+  
+  for (const neighborhood of group2Neighborhoods) {
+    const score = calculateNeighborhoodSimilarity(venue.neighborhood, neighborhood);
+    group2Score = Math.max(group2Score, score);
+  }
+  
+  const combinedVibes = [...new Set([...group1Vibes, ...group2Vibes])].join(' and ');
   
   if (group1Score >= 85 || group2Score >= 85) {
-    return `Perfect location match! ${venue.name} is right in your preferred neighborhood and matches your ${group1.vibe} and ${group2.vibe} vibes.`;
+    return `Perfect location match! ${venue.name} is right in your preferred neighborhood and matches your ${combinedVibes} vibes.`;
   } else if (group1Score >= 60 || group2Score >= 60) {
     return `Great choice! ${venue.name} is in a nearby area that works well for both groups' preferences.`;
   } else {
@@ -191,20 +229,38 @@ export function combineGroupVibes(vibe1: string, vibe2: string): string {
 
 /**
  * Get the primary neighborhood from two groups
+ * Updated to handle multiple neighborhoods per group
  */
 export function getPrimaryNeighborhood(group1: Group, group2: Group): string {
-  if (!group1.neighborhood && !group2.neighborhood) return 'New York City';
-  if (!group1.neighborhood) return group2.neighborhood;
-  if (!group2.neighborhood) return group1.neighborhood;
+  // Get neighborhoods for both groups (handle legacy and new array fields)
+  const group1Neighborhoods = group1.neighborhoods || (group1.neighborhood ? [group1.neighborhood] : []);
+  const group2Neighborhoods = group2.neighborhoods || (group2.neighborhood ? [group2.neighborhood] : []);
   
-  // If neighborhoods are similar, use the more specific one
-  const similarity = calculateNeighborhoodSimilarity(group1.neighborhood, group2.neighborhood);
-  if (similarity >= 85) {
-    // Return the longer one (likely more specific)
-    return group1.neighborhood.length > group2.neighborhood.length ? 
-           group1.neighborhood : group2.neighborhood;
+  if (group1Neighborhoods.length === 0 && group2Neighborhoods.length === 0) return 'New York City';
+  if (group1Neighborhoods.length === 0) return group2Neighborhoods[0];
+  if (group2Neighborhoods.length === 0) return group1Neighborhoods[0];
+  
+  // Find the best matching neighborhoods between groups
+  let bestMatch = '';
+  let bestSimilarity = 0;
+  
+  for (const n1 of group1Neighborhoods) {
+    for (const n2 of group2Neighborhoods) {
+      const similarity = calculateNeighborhoodSimilarity(n1, n2);
+      if (similarity > bestSimilarity) {
+        bestSimilarity = similarity;
+        // Return the longer one (likely more specific)
+        bestMatch = n1.length > n2.length ? n1 : n2;
+      }
+    }
   }
   
-  // If different, combine them
-  return `${group1.neighborhood} / ${group2.neighborhood}`;
+  // If we found a good match (>= 85), use it
+  if (bestSimilarity >= 85) {
+    return bestMatch;
+  }
+  
+  // Otherwise, combine the first neighborhoods from each group
+  const uniqueNeighborhoods = [...new Set([...group1Neighborhoods, ...group2Neighborhoods])];
+  return uniqueNeighborhoods.slice(0, 2).join(' / ');
 }

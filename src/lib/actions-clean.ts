@@ -307,8 +307,8 @@ export async function handleMatchDecision(
                 if (targetGroupSnap.exists()) {
                     const targetGroupData = targetGroupSnap.data() as Group;
                     const suggestion = await suggestVenue({
-                        neighborhood: targetGroupData.neighborhood,
-                        vibe: targetGroupData.vibe,
+                        neighborhoods: targetGroupData.neighborhoods || (targetGroupData.neighborhood ? [targetGroupData.neighborhood] : []),
+                        vibes: targetGroupData.vibes || (targetGroupData.vibe ? [targetGroupData.vibe] : []),
                         groupIntent: targetGroupData.intent,
                     });
 

@@ -34,12 +34,21 @@ export function useVibes() {
     fetchVibes();
   }, []);
 
-  // Convert to SimpleSelectOption format
-  const vibeOptions: SimpleSelectOption[] = vibes.map(vibe => ({
-    value: vibe.name,
-    label: vibe.name,
-    description: vibe.description || undefined,
-  }));
+  // Convert to SimpleSelectOption format with fallback data for testing
+  const vibeOptions: SimpleSelectOption[] = vibes.length > 0 
+    ? vibes.map(vibe => ({
+        value: vibe.name,
+        label: vibe.name,
+        description: vibe.description || undefined,
+      }))
+    : [
+        // Fallback test data
+        { value: "Chill", label: "Chill" },
+        { value: "Party", label: "Party" },
+        { value: "Foodie", label: "Foodie" },
+        { value: "Artsy", label: "Artsy" },
+        { value: "Outdoorsy", label: "Outdoorsy" },
+      ];
 
   return {
     vibes,

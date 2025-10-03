@@ -4,7 +4,7 @@ import { suggestVenue } from "@/ai/flows/suggest-venue";
 import type { SuggestVenueInput, SuggestVenueOutput } from "@/ai/flows/suggest-venue";
 import { collection, query, where, getDocs, updateDoc, doc, arrayUnion, DocumentReference, getDoc, setDoc, serverTimestamp, addDoc, limit, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Group, User, GroupIntent, Vote, Invitation, Report } from "./types";
+import type { Group, User, GroupIntent, GroupMode, Vote, Invitation, Report } from "./types";
 import { getVenueSuggestionForMatch } from '@/lib/venue-service';
 
 // Simple in-memory cache for performance
@@ -128,12 +128,16 @@ function calculateRobustMatchScore(userGroup: any, potentialGroup: any): number 
         const intentScore = calculateIntentCompatibility(userGroup.intent as GroupIntent, potentialGroup.intent as GroupIntent);
         score += Math.min(intentScore * 4, 40);
         
-        // Neighborhood match (30% of score)
-        const neighborhoodScore = calculateNeighborhoodScore(userGroup.neighborhood || '', potentialGroup.neighborhood || '');
+        // Neighborhood match (30% of score) - handle both legacy and new array fields
+        const userNeighborhoods = userGroup.neighborhoods || (userGroup.neighborhood ? [userGroup.neighborhood] : []);
+        const potentialNeighborhoods = potentialGroup.neighborhoods || (potentialGroup.neighborhood ? [potentialGroup.neighborhood] : []);
+        const neighborhoodScore = calculateNeighborhoodScore(userNeighborhoods, potentialNeighborhoods);
         score += Math.min(neighborhoodScore, 30);
         
-        // Vibe compatibility (20% of score)
-        const vibeScore = calculateVibeScore(userGroup.vibe || '', potentialGroup.vibe || '');
+        // Vibe compatibility (20% of score) - handle both legacy and new array fields
+        const userVibes = userGroup.vibes || (userGroup.vibe ? [userGroup.vibe] : []);
+        const potentialVibes = potentialGroup.vibes || (potentialGroup.vibe ? [potentialGroup.vibe] : []);
+        const vibeScore = calculateVibeScore(userVibes, potentialVibes);
         score += Math.min(vibeScore, 20);
         
         // Size compatibility (10% of score)
@@ -167,63 +171,106 @@ function isStrictIntentCompatible(userIntent: GroupIntent, potentialIntent: Grou
     return true;
 }
 
-// Optimized scoring functions
-function calculateNeighborhoodScore(userNeighborhood: string, potentialNeighborhood: string): number {
-    if (!userNeighborhood || !potentialNeighborhood) return 0;
+// Updated scoring functions for multi-select neighborhoods and vibes
+function calculateNeighborhoodScore(userNeighborhoods: string[] | string, potentialNeighborhoods: string[] | string): number {
+    // Handle legacy single values and new array values
+    const userArray = Array.isArray(userNeighborhoods) ? userNeighborhoods : (userNeighborhoods ? [userNeighborhoods] : []);
+    const potentialArray = Array.isArray(potentialNeighborhoods) ? potentialNeighborhoods : (potentialNeighborhoods ? [potentialNeighborhoods] : []);
     
-    const userLower = userNeighborhood.toLowerCase().trim();
-    const potentialLower = potentialNeighborhood.toLowerCase().trim();
+    if (userArray.length === 0 || potentialArray.length === 0) return 0;
     
-    // Exact match
-    if (userLower === potentialLower) return 30;
+    let maxScore = 0;
     
-    // Substring match
-    if (userLower.includes(potentialLower) || potentialLower.includes(userLower)) return 15;
-    
-    // Simple word matching (safer)
-    const userWords = userLower.split(/\s+/).slice(0, 3); // Limit to prevent loops
-    const potentialWords = potentialLower.split(/\s+/).slice(0, 3);
-    
-    for (const userWord of userWords) {
-        if (userWord.length >= 3) {
-            for (const potentialWord of potentialWords) {
-                if (potentialWord.length >= 3 && userWord.startsWith(potentialWord.substring(0, 3))) {
-                    return 10;
+    // Check for any matches between the arrays (OR condition)
+    for (const userNeighborhood of userArray) {
+        for (const potentialNeighborhood of potentialArray) {
+            const userLower = userNeighborhood.toLowerCase().trim();
+            const potentialLower = potentialNeighborhood.toLowerCase().trim();
+            
+            // Exact match - highest priority
+            if (userLower === potentialLower) {
+                return 30; // Return immediately for perfect match
+            }
+            
+            // Substring match
+            if (userLower.includes(potentialLower) || potentialLower.includes(userLower)) {
+                maxScore = Math.max(maxScore, 20);
+                continue;
+            }
+            
+            // Word-based matching
+            const userWords = userLower.split(/\s+/).slice(0, 3);
+            const potentialWords = potentialLower.split(/\s+/).slice(0, 3);
+            
+            for (const userWord of userWords) {
+                if (userWord.length >= 3) {
+                    for (const potentialWord of potentialWords) {
+                        if (potentialWord.length >= 3 && userWord.startsWith(potentialWord.substring(0, 3))) {
+                            maxScore = Math.max(maxScore, 10);
+                        }
+                    }
                 }
             }
         }
     }
     
-    return 0;
+    return maxScore;
 }
 
-function calculateVibeScore(userVibe: string, potentialVibe: string): number {
-    if (!userVibe || !potentialVibe) return 0;
+function calculateVibeScore(userVibes: string[] | string, potentialVibes: string[] | string): number {
+    // Handle legacy single values and new array values
+    const userArray = Array.isArray(userVibes) ? userVibes : (userVibes ? [userVibes] : []);
+    const potentialArray = Array.isArray(potentialVibes) ? potentialVibes : (potentialVibes ? [potentialVibes] : []);
     
-    const userLower = userVibe.toLowerCase().trim();
-    const potentialLower = potentialVibe.toLowerCase().trim();
+    if (userArray.length === 0 || potentialArray.length === 0) return 0;
     
-    // Simple exact match
-    if (userLower === potentialLower) return 20;
+    let maxScore = 0;
+    let totalMatches = 0;
     
-    // Simple substring match
-    if (userLower.includes(potentialLower) || potentialLower.includes(userLower)) return 15;
-    
-    // Word-based matching (safer)
-    const userWords = userLower.split(/[\s,]+/).filter(w => w.length > 2);
-    const potentialWords = potentialLower.split(/[\s,]+/).filter(w => w.length > 2);
-    
-    let matches = 0;
-    for (const userWord of userWords.slice(0, 5)) { // Limit to prevent loops
-        for (const potentialWord of potentialWords.slice(0, 5)) {
-            if (userWord === potentialWord) {
-                matches++;
-                break; // Only count each user word once
+    // Check for any matches between the arrays (OR condition)
+    for (const userVibe of userArray) {
+        for (const potentialVibe of potentialArray) {
+            const userLower = userVibe.toLowerCase().trim();
+            const potentialLower = potentialVibe.toLowerCase().trim();
+            
+            // Exact match
+            if (userLower === potentialLower) {
+                totalMatches += 1;
+                maxScore = Math.max(maxScore, 20);
+                continue;
+            }
+            
+            // Substring match
+            if (userLower.includes(potentialLower) || potentialLower.includes(userLower)) {
+                totalMatches += 0.7;
+                maxScore = Math.max(maxScore, 15);
+                continue;
+            }
+            
+            // Word-based matching
+            const userWords = userLower.split(/[\s,]+/).filter(w => w.length > 2);
+            const potentialWords = potentialLower.split(/[\s,]+/).filter(w => w.length > 2);
+            
+            let wordMatches = 0;
+            for (const userWord of userWords.slice(0, 5)) {
+                for (const potentialWord of potentialWords.slice(0, 5)) {
+                    if (userWord === potentialWord) {
+                        wordMatches++;
+                        break;
+                    }
+                }
+            }
+            
+            if (wordMatches > 0) {
+                totalMatches += wordMatches * 0.3;
+                maxScore = Math.max(maxScore, Math.min(wordMatches * 5, 15));
             }
         }
     }
     
-    return Math.min(matches * 5, 20);
+    // Bonus for multiple matches
+    const bonusScore = Math.min(totalMatches * 2, 5);
+    return Math.min(maxScore + bonusScore, 20);
 }
 
 function calculateSizeScore(userSize: number, potentialSize: number): number {
@@ -291,11 +338,15 @@ export async function findPotentialMatches(userGroupId: string): Promise<Group[]
 
     // Sanitize current group
     const userGroup = {
-    id: userGroupSnap.id,
-    name: userGroupData.name || "",
-    size: Number(userGroupData.size ?? 0),
-    neighborhood: userGroupData.neighborhood || "",
-    vibe: userGroupData.vibe || "",
+      id: userGroupSnap.id,
+      name: userGroupData.name || "",
+      size: Number(userGroupData.size ?? 0),
+      // Handle both legacy and new array fields
+      neighborhoods: userGroupData.neighborhoods || (userGroupData.neighborhood ? [userGroupData.neighborhood] : []),
+      vibes: userGroupData.vibes || (userGroupData.vibe ? [userGroupData.vibe] : []),
+      // Keep legacy fields for compatibility
+      neighborhood: userGroupData.neighborhood || "",
+      vibe: userGroupData.vibe || "",
       intent: userGroupData.intent as GroupIntent || "any",
     };
 
@@ -342,6 +393,10 @@ export async function findPotentialMatches(userGroupId: string): Promise<Group[]
           id: groupId,
           name: groupData.name || "",
           size: Number(groupData.size ?? 0) || 0,
+          // Handle both legacy and new array fields
+          neighborhoods: groupData.neighborhoods || (groupData.neighborhood ? [groupData.neighborhood] : []),
+          vibes: groupData.vibes || (groupData.vibe ? [groupData.vibe] : []),
+          // Keep legacy fields for compatibility
           neighborhood: groupData.neighborhood || "",
           vibe: groupData.vibe || "",
           intent: (groupData.intent as GroupIntent) || "any",
@@ -446,9 +501,14 @@ export async function findPotentialMatches(userGroupId: string): Promise<Group[]
           id: group.id,
           name: String(fullData.name || ""),
           size: Number(fullData.size ?? 0),
+          // Handle both legacy and new array fields
+          neighborhoods: fullData.neighborhoods || (fullData.neighborhood ? [String(fullData.neighborhood)] : []),
+          vibes: fullData.vibes || (fullData.vibe ? [String(fullData.vibe)] : []),
+          // Keep legacy fields for compatibility
           neighborhood: String(fullData.neighborhood || ""),
           vibe: String(fullData.vibe || ""),
           intent: (fullData.intent as GroupIntent) || "any",
+          mode: (fullData.mode as GroupMode) || "dictator",
           isOpenToMatch: Boolean(fullData.isOpenToMatch),
           pictureUrl: fullData.pictureUrl ? String(fullData.pictureUrl) : undefined,
           members: safeMembers,
@@ -550,8 +610,8 @@ export async function handleMatchDecision(
                 if (targetGroupSnap.exists()) {
                     const targetGroupData = targetGroupSnap.data() as Group;
                     const suggestion = await suggestVenue({
-                        neighborhood: targetGroupData.neighborhood,
-                        vibe: targetGroupData.vibe,
+                        neighborhoods: targetGroupData.neighborhoods || (targetGroupData.neighborhood ? [targetGroupData.neighborhood] : []),
+                        vibes: targetGroupData.vibes || (targetGroupData.vibe ? [targetGroupData.vibe] : []),
                         groupIntent: targetGroupData.intent,
                     });
 

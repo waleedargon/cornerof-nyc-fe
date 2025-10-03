@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ChevronLeft, LogOut, User } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,15 @@ type HeaderProps = {
   showSignOut?: boolean;
   showLogo?: boolean;
   centerLogo?: boolean;
+  hideProfileAndLogout?: boolean; // New prop to hide profile and logout icons
 };
 
-export function Header({ title, backHref, showSignOut = false, showLogo = true, centerLogo = false }: HeaderProps) {
+export function Header({ title, backHref, showSignOut = false, showLogo = true, centerLogo = false, hideProfileAndLogout = false }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Hide profile and logout buttons on home page
+  const shouldHideProfileAndLogout = hideProfileAndLogout || pathname === '/home';
 
   const handleSignOut = () => {
     localStorage.removeItem('userPhone');
@@ -52,7 +57,7 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
 
           {/* Right side - Profile and Sign Out (fixed width to match left) */}
           <div className="flex items-center justify-end gap-1 sm:gap-2 w-20 sm:w-24">
-            {showSignOut && (
+            {showSignOut && !shouldHideProfileAndLogout && (
               <>
                 <Button asChild variant="ghost" size="icon" aria-label="Profile">
                   <Link href="/profile/create">
@@ -102,7 +107,7 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
 
         {/* Right side - Profile and Sign Out */}
         <div className="flex items-center gap-1 sm:gap-2">
-          {showSignOut && (
+          {showSignOut && !shouldHideProfileAndLogout && (
             <>
               <Button asChild variant="ghost" size="icon" aria-label="Profile">
                 <Link href="/profile/create">

@@ -18,8 +18,11 @@ export type Group = {
   id: string;
   name: string;
   size: number;
-  neighborhood: string;
-  vibe: string;
+  neighborhoods: string[]; // Changed from single string to array
+  vibes: string[]; // Changed from single string to array
+  // Legacy fields for backward compatibility
+  neighborhood?: string; // Keep for migration purposes
+  vibe?: string; // Keep for migration purposes
   intent: GroupIntent;
   mode: GroupMode;
   pictureUrl?: string;

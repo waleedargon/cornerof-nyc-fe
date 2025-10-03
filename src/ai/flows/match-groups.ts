@@ -8,16 +8,16 @@ export const MatchGroupsInputSchema = z.object({
     id: z.string(),
     name: z.string(),
     size: z.number(),
-    neighborhood: z.string(),
-    vibe: z.string(),
+    neighborhoods: z.array(z.string()),
+    vibes: z.array(z.string()),
     intent: z.enum(['all-boys', 'all-girls', 'mixed', 'any']),
   }),
   potentialGroups: z.array(z.object({
     id: z.string(),
     name: z.string(),
     size: z.number(),
-    neighborhood: z.string(),
-    vibe: z.string(),
+    neighborhoods: z.array(z.string()),
+    vibes: z.array(z.string()),
     intent: z.enum(['all-boys', 'all-girls', 'mixed', 'any']),
   })),
 });
@@ -78,10 +78,10 @@ const matchGroupsFlow = ai.defineFlow(
     }
     
     // Create detailed group descriptions for AI analysis
-    const userGroupDescription = `Group "${userGroup.name}": ${userGroup.size} people, ${userGroup.intent} group, located in ${userGroup.neighborhood}, vibe: ${userGroup.vibe}`;
+    const userGroupDescription = `Group "${userGroup.name}": ${userGroup.size} people, ${userGroup.intent} group, located in ${userGroup.neighborhoods.join(', ')}, vibes: ${userGroup.vibes.join(', ')}`;
     
     const potentialGroupDescriptions = intentCompatibleGroups.map(group => 
-      `Group "${group.name}" (ID: ${group.id}): ${group.size} people, ${group.intent} group, located in ${group.neighborhood}, vibe: ${group.vibe}`
+      `Group "${group.name}" (ID: ${group.id}): ${group.size} people, ${group.intent} group, located in ${group.neighborhoods.join(', ')}, vibes: ${group.vibes.join(', ')}`
     ).join('\n');
     
     const prompt = `
@@ -200,19 +200,32 @@ function calculateBasicScore(userGroup: any, potentialGroup: any): number {
   else if (userGroup.intent === 'mixed' || potentialGroup.intent === 'mixed') score += 24;
   
   // Neighborhood match (30 points max)
-  if (userGroup.neighborhood.toLowerCase() === potentialGroup.neighborhood.toLowerCase()) {
+  const userNeighborhoods = userGroup.neighborhoods.map(n => n.toLowerCase());
+  const potentialNeighborhoods = potentialGroup.neighborhoods.map(n => n.toLowerCase());
+  
+  // Check for exact matches first
+  const exactNeighborhoodMatches = userNeighborhoods.filter(neighborhood => 
+    potentialNeighborhoods.includes(neighborhood)
+  );
+  
+  if (exactNeighborhoodMatches.length > 0) {
     score += 30;
   } else {
-    const userNeighborhood = userGroup.neighborhood.toLowerCase();
-    const potentialNeighborhood = potentialGroup.neighborhood.toLowerCase();
-    if (userNeighborhood.includes(potentialNeighborhood) || potentialNeighborhood.includes(userNeighborhood)) {
-      score += 15;
+    // Partial credit for similar neighborhoods
+    let partialScore = 0;
+    for (const userNeighborhood of userNeighborhoods) {
+      for (const potentialNeighborhood of potentialNeighborhoods) {
+        if (userNeighborhood.includes(potentialNeighborhood) || potentialNeighborhood.includes(userNeighborhood)) {
+          partialScore = Math.max(partialScore, 15);
+        }
+      }
     }
+    score += partialScore;
   }
   
   // Vibe compatibility (20 points max)
-  const userVibes = userGroup.vibe.toLowerCase().split(/\s*,\s*|\s+/);
-  const potentialVibes = potentialGroup.vibe.toLowerCase().split(/\s*,\s*|\s+/);
+  const userVibes = userGroup.vibes.map(v => v.toLowerCase());
+  const potentialVibes = potentialGroup.vibes.map(v => v.toLowerCase());
   const commonVibes = userVibes.filter(vibe => potentialVibes.includes(vibe));
   score += Math.min(commonVibes.length * 5, 20);
   

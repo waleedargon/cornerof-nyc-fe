@@ -432,7 +432,11 @@ export default function InvitationsPage() {
                             <span>{(invitation.fromGroupData.members as UserType[]).length}/{invitation.fromGroupData.size} members</span>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">{invitation.fromGroupData.vibe}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {invitation.fromGroupData.vibes?.length > 0 
+                            ? invitation.fromGroupData.vibes.join(', ') 
+                            : invitation.fromGroupData.vibe || 'N/A'}
+                        </p>
                       </div>
                     </div>
 
@@ -545,7 +549,11 @@ export default function InvitationsPage() {
                             <span>{(invitation.toGroupData.members as UserType[]).length}/{invitation.toGroupData.size} members</span>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">{invitation.toGroupData.vibe}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {invitation.toGroupData.vibes?.length > 0 
+                            ? invitation.toGroupData.vibes.join(', ') 
+                            : invitation.toGroupData.vibe || 'N/A'}
+                        </p>
                       </div>
                     </div>
                   </CardContent>

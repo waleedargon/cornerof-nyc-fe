@@ -128,7 +128,11 @@ export default function AdminGroupsPage() {
               <TableRow key={group.id}>
                 <TableCell className="font-medium">{group.name}</TableCell>
                 <TableCell>{group.size}</TableCell>
-                <TableCell>{group.neighborhood}</TableCell>
+                <TableCell>
+                  {group.neighborhoods?.length > 0 
+                    ? group.neighborhoods.join(', ') 
+                    : group.neighborhood || 'N/A'}
+                </TableCell>
                 <TableCell>{group.creator.name}</TableCell>
                 <TableCell>
                   <div className="flex items-center -space-x-2">

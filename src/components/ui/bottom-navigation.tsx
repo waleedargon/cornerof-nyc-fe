@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Heart, MessageCircle, User } from 'lucide-react';
+import { Home, Heart, MessageCircle, User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
@@ -21,6 +21,12 @@ const navigationItems = [
     name: 'Matches',
     href: '/matches',
     icon: Heart,
+    type: 'link',
+  },
+  {
+    name: 'Group',
+    href: '/group-profile',
+    icon: Users,
     type: 'link',
   },
   {
@@ -115,12 +121,13 @@ export function BottomNavigation() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border">
       <div className="flex items-center justify-around h-16 px-4">
         {navigationItems.map((item) => {
           const isActive = pathname === item.href || 
                           (item.href === '/chat' && pathname.startsWith('/chat/')) ||
-                          (item.href === '/profile' && pathname.startsWith('/profile'));
+                          (item.href === '/profile' && pathname.startsWith('/profile')) ||
+                          (item.href === '/group-profile' && pathname.startsWith('/group-profile'));
           
           // Special handling for chat item
           if (item.type === 'chat') {

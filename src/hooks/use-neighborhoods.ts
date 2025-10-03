@@ -34,12 +34,21 @@ export function useNeighborhoods() {
     fetchNeighborhoods();
   }, []);
 
-  // Convert to SimpleSelectOption format
-  const neighborhoodOptions: SimpleSelectOption[] = neighborhoods.map(neighborhood => ({
-    value: neighborhood.name,
-    label: neighborhood.name,
-    description: neighborhood.description || undefined,
-  }));
+  // Convert to SimpleSelectOption format with fallback data for testing
+  const neighborhoodOptions: SimpleSelectOption[] = neighborhoods.length > 0 
+    ? neighborhoods.map(neighborhood => ({
+        value: neighborhood.name,
+        label: neighborhood.name,
+        description: neighborhood.description || undefined,
+      }))
+    : [
+        // Fallback test data
+        { value: "Greenwich Village", label: "Greenwich Village" },
+        { value: "SoHo", label: "SoHo" },
+        { value: "Tribeca", label: "Tribeca" },
+        { value: "Lower East Side", label: "Lower East Side" },
+        { value: "Upper West Side", label: "Upper West Side" },
+      ];
 
   return {
     neighborhoods,

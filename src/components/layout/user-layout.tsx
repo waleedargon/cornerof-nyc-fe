@@ -37,15 +37,15 @@ export function UserLayout({ children, className }: UserLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Main content area with bottom padding on mobile to account for bottom nav */}
+      {/* Main content area with bottom padding to account for bottom nav */}
       <main className={cn(
-        'pb-16 md:pb-0', // Add bottom padding on mobile for bottom nav
+        'pb-16', // Add bottom padding for bottom nav on all devices
         className
       )}>
         {children}
       </main>
       
-      {/* Bottom Navigation - only shows on mobile */}
+      {/* Bottom Navigation - shows on all devices */}
       <BottomNavigation />
     </div>
   );

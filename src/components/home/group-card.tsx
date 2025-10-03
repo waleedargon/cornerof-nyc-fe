@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Users, 
   MapPin, 
@@ -14,7 +15,8 @@ import {
   Flag, 
   Search, 
   User,
-  Edit
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { updateDoc, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -32,6 +34,8 @@ import { GroupMembersDialog } from '@/components/group-members-dialog';
 import { InviteDialog } from '@/components/invite-dialog';
 import { AddGroupDialog } from '@/components/add-group-dialog';
 import { JoinGroupDialog } from '@/components/join-group-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { deleteGroupWithCascade } from '@/lib/admin-actions';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import type { Group, User as UserType } from '@/lib/types';
@@ -49,7 +53,10 @@ export function GroupCard({
   receivedInvitationsCount,
   onGroupUpdate 
 }: GroupCardProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
   const handleVisibilityToggle = async (isOpen: boolean) => {
@@ -80,6 +87,42 @@ export function GroupCard({
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!userGroup) return;
+
+    try {
+      setIsDeleting(true);
+      const result = await deleteGroupWithCascade(userGroup.id);
+      
+      if (result.success) {
+        toast({
+          title: "Group deleted",
+          description: "Your group and all related data have been removed successfully.",
+        });
+        // Redirect to home page after successful deletion
+        router.push('/home');
+        if (onGroupUpdate) {
+          onGroupUpdate();
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete group",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
   const formatIntent = (intent: string) => {
     switch (intent) {
       case 'all-boys': return 'All Guys';
@@ -91,27 +134,38 @@ export function GroupCard({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>My Group</CardTitle>
-            {!userGroup && <CardDescription>Create a group to find a match!</CardDescription>}
-          </div>
-          {userGroup && user && (
-            <div className="flex items-center gap-1 sm:gap-2">
-              <InviteDialog group={userGroup} />
-              {/* Edit Group - Admin Only */}
-              {(userGroup.creator as UserType)?.id === user?.id && (
-                <EditGroupDialog
-                  group={userGroup}
-                  onGroupUpdated={onGroupUpdate || (() => window.location.reload())}
-                />
-              )}
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>My Group</CardTitle>
+              {!userGroup && <CardDescription>Create a group to find a match!</CardDescription>}
             </div>
-          )}
-        </div>
-      </CardHeader>
+            {userGroup && user && (
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Edit and Delete Icons - Creator Only */}
+                {(userGroup.creator as UserType)?.id === user?.id && (
+                  <>
+                    <EditGroupDialog
+                      group={userGroup}
+                      onGroupUpdated={onGroupUpdate || (() => window.location.reload())}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      title="Delete Group"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </CardHeader>
       <CardContent>
         {userGroup ? (
           <div className="space-y-6">
@@ -180,11 +234,11 @@ export function GroupCard({
               </div>
               <div className="flex items-center justify-start gap-2">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
-                <span>{userGroup.neighborhood}</span>
+                <span>{userGroup.neighborhoods.join(', ')}</span>
               </div>
               <div className="flex items-center justify-start gap-2">
                 <Smile className="h-5 w-5 text-muted-foreground" />
-                <span>{userGroup.vibe}</span>
+                <span>{userGroup.vibes.join(', ')}</span>
               </div>
               <div className="flex items-center justify-start gap-2">
                 <Target className="h-5 w-5 text-muted-foreground" />
@@ -196,11 +250,14 @@ export function GroupCard({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-semibold">Members</h4>
-                <GroupMembersDialog
-                  group={userGroup}
-                  currentUser={user!}
-                  onGroupUpdated={onGroupUpdate || (() => window.location.reload())}
-                />
+                <div className="flex items-center gap-2">
+                  <GroupMembersDialog
+                    group={userGroup}
+                    currentUser={user!}
+                    onGroupUpdated={onGroupUpdate || (() => window.location.reload())}
+                  />
+                  <InviteDialog group={userGroup} />
+                </div>
               </div>
               <div className="flex items-center justify-start -space-x-2">
                 {userGroup.members && userGroup.members.length > 0 ? (
@@ -294,5 +351,35 @@ export function GroupCard({
         )}
       </CardContent>
     </Card>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Your Group</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete "{userGroup?.name}"? This action will:
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>Remove all members from the group</li>
+              <li>Delete any active chatrooms for this group</li>
+              <li>Cancel all pending invitations</li>
+              <li>Make any matched groups available for new matches</li>
+            </ul>
+            <strong className="block mt-2 text-destructive">This action cannot be undone.</strong>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteGroup}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? "Deleting..." : "Delete Group"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

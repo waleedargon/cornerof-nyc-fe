@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SimpleSelect } from '@/components/ui/simple-select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import type { Group, GroupIntent, GroupMode } from '@/lib/types';
@@ -48,8 +48,8 @@ import { useVibes } from '@/hooks/use-vibes';
 const formSchema = z.object({
   name: z.string().min(3, 'Group name must be at least 3 characters.'),
   size: z.array(z.number()).min(1).max(1),
-  neighborhood: z.string().min(3, 'Please enter a neighborhood.'),
-  vibe: z.string().min(3, "Describe your group's vibe."),
+  neighborhoods: z.array(z.string()).min(1, 'Please select at least one neighborhood.'),
+  vibes: z.array(z.string()).min(1, 'Please select at least one vibe.'),
   intent: z.enum(['all-boys', 'all-girls', 'mixed', 'any'], {
     required_error: 'Please select your group intent.',
   }),
@@ -85,8 +85,9 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
     defaultValues: {
       name: group.name,
       size: [group.size],
-      neighborhood: group.neighborhood,
-      vibe: group.vibe,
+      // Handle migration from legacy single fields to arrays
+      neighborhoods: group.neighborhoods || (group.neighborhood ? [group.neighborhood] : []),
+      vibes: group.vibes || (group.vibe ? [group.vibe] : []),
       intent: group.intent,
       mode: group.mode || 'dictator',
     },
@@ -147,11 +148,19 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
       const updateData: any = {
         name: values.name,
         size: values.size[0],
-        neighborhood: values.neighborhood,
-        vibe: values.vibe,
+        neighborhoods: values.neighborhoods,
+        vibes: values.vibes,
         intent: values.intent,
         mode: values.mode,
       };
+
+      // Remove legacy fields if they exist
+      if (group.neighborhood) {
+        updateData.neighborhood = deleteField();
+      }
+      if (group.vibe) {
+        updateData.vibe = deleteField();
+      }
 
       if (pictureUrl) {
         updateData.pictureUrl = pictureUrl;
@@ -287,19 +296,22 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
 
             <FormField
               control={form.control}
-              name="neighborhood"
+              name="neighborhoods"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Neighborhood</FormLabel>
+                  <FormLabel>Neighborhoods</FormLabel>
                   <FormControl>
-                    <SimpleSelect
+                    <MultiSelect
                       options={neighborhoodOptions}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select a neighborhood..."
+                      selected={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select neighborhoods..."
                       disabled={neighborhoodsLoading || loading}
                     />
                   </FormControl>
+                  <FormDescription>
+                    What areas are you looking to meet in?
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -307,19 +319,22 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
 
             <FormField
               control={form.control}
-              name="vibe"
+              name="vibes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Group Vibe</FormLabel>
+                  <FormLabel>Vibes</FormLabel>
                   <FormControl>
-                    <SimpleSelect
+                    <MultiSelect
                       options={vibeOptions}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select a vibe..."
+                      selected={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select vibes..."
                       disabled={vibesLoading || loading}
                     />
                   </FormControl>
+                  <FormDescription>
+                    What vibes describe your group?
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
