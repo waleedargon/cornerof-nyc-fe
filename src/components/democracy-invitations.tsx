@@ -282,9 +282,9 @@ export function DemocracyInvitations({ userGroup, currentUser, onInvitationUpdat
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span>Vibe: {invitation.fromGroupData.vibes?.length > 0 
-                          ? invitation.fromGroupData.vibes.join(', ') 
-                          : invitation.fromGroupData.vibe || 'N/A'}</span>
+                        <span>Vibe: {invitation.fromGroupData?.vibes?.length > 0 
+                          ? invitation.fromGroupData?.vibes?.join(', ') 
+                          : invitation.fromGroupData?.vibe || 'N/A'}</span>
                       </div>
                     </div>
 

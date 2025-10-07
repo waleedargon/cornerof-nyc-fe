@@ -337,6 +337,31 @@ export default function InvitationsPage() {
     }
   };
 
+  const formatTimestamp = (timestamp: any) => {
+    try {
+      // Handle Firebase Timestamp
+      if (timestamp && typeof timestamp === 'object' && timestamp.seconds) {
+        return format(new Date(timestamp.seconds * 1000), 'PPp');
+      }
+      // Handle Date object
+      if (timestamp instanceof Date) {
+        return format(timestamp, 'PPp');
+      }
+      // Handle string timestamp
+      if (typeof timestamp === 'string') {
+        return format(new Date(timestamp), 'PPp');
+      }
+      // Handle number timestamp (milliseconds)
+      if (typeof timestamp === 'number') {
+        return format(new Date(timestamp), 'PPp');
+      }
+      return 'Unknown date';
+    } catch (error) {
+      console.error('Error formatting timestamp:', error, timestamp);
+      return 'Invalid date';
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -389,7 +414,7 @@ export default function InvitationsPage() {
                         <div>
                           <h3 className="font-semibold">Invitation from {invitation.fromGroupData.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(invitation.createdAt.seconds * 1000), 'PPp')}
+                            {formatTimestamp(invitation.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -433,9 +458,9 @@ export default function InvitationsPage() {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {invitation.fromGroupData.vibes?.length > 0 
-                            ? invitation.fromGroupData.vibes.join(', ') 
-                            : invitation.fromGroupData.vibe || 'N/A'}
+                          {invitation.fromGroupData?.vibes?.length > 0 
+                            ? invitation.fromGroupData?.vibes?.join(', ') 
+                            : invitation.fromGroupData?.vibe || 'N/A'}
                         </p>
                       </div>
                     </div>
@@ -506,7 +531,7 @@ export default function InvitationsPage() {
                         <div>
                           <h3 className="font-semibold">Invitation to {invitation.toGroupData.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(invitation.createdAt.seconds * 1000), 'PPp')}
+                            {formatTimestamp(invitation.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -550,9 +575,9 @@ export default function InvitationsPage() {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {invitation.toGroupData.vibes?.length > 0 
-                            ? invitation.toGroupData.vibes.join(', ') 
-                            : invitation.toGroupData.vibe || 'N/A'}
+                          {invitation.toGroupData?.vibes?.length > 0 
+                            ? invitation.toGroupData?.vibes?.join(', ') 
+                            : invitation.toGroupData?.vibe || 'N/A'}
                         </p>
                       </div>
                     </div>

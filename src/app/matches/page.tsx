@@ -185,7 +185,7 @@ export default function MatchesPage() {
   if (authLoading || loading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <Header centerLogo={true} showSignOut={!!user} />
+        <Header centerLogo={true} showSignOut={true} />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex items-center gap-3">
             <LoadingSpinner size="lg" />

@@ -191,14 +191,14 @@ export function InternationalPhoneInput<TFieldValues extends FieldValues>({
                       variant="outline"
                       role="combobox"
                       aria-expanded={isOpen}
-                      className="h-10 rounded-r-none border-r-0 px-3 hover:bg-gray-50"
+                      className="h-10 rounded-r-none border-r-0 px-2 sm:px-3 hover:bg-gray-50 flex-shrink-0 min-w-0"
                     >
-                      <span className="text-lg mr-2">{selectedCountry.flag}</span>
-                      <span className="text-sm text-muted-foreground">+{selectedCountry.dialCode}</span>
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      <span className="text-sm sm:text-lg mr-1 sm:mr-2">{selectedCountry.flag}</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">+{selectedCountry.dialCode}</span>
+                      <ChevronDown className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0">
+                  <PopoverContent className="w-72 sm:w-80 p-0">
                     <div className="p-2">
                       <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -241,7 +241,7 @@ export function InternationalPhoneInput<TFieldValues extends FieldValues>({
                 <input
                   type="tel"
                   className={cn(
-                    "flex h-10 flex-1 rounded-l-none border border-black bg-white px-3 py-2 text-base leading-tight ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                    "flex h-10 flex-1 rounded-l-none border border-black bg-white px-2 sm:px-3 py-2 text-sm sm:text-base leading-tight ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-w-0",
                     className
                   )}
                   placeholder={placeholder || (selectedCountry.isoCode === 'US' ? '(212) 555-1234' : 'Enter phone number')}

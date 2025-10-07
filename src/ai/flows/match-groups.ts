@@ -78,10 +78,10 @@ const matchGroupsFlow = ai.defineFlow(
     }
     
     // Create detailed group descriptions for AI analysis
-    const userGroupDescription = `Group "${userGroup.name}": ${userGroup.size} people, ${userGroup.intent} group, located in ${userGroup.neighborhoods.join(', ')}, vibes: ${userGroup.vibes.join(', ')}`;
+    const userGroupDescription = `Group "${userGroup.name}": ${userGroup.size} people, ${userGroup.intent} group, located in ${userGroup?.neighborhoods?.join(', ')}, vibes: ${userGroup?.vibes?.join(', ')}`;
     
     const potentialGroupDescriptions = intentCompatibleGroups.map(group => 
-      `Group "${group.name}" (ID: ${group.id}): ${group.size} people, ${group.intent} group, located in ${group.neighborhoods.join(', ')}, vibes: ${group.vibes.join(', ')}`
+      `Group "${group.name}" (ID: ${group.id}): ${group.size} people, ${group.intent} group, located in ${group?.neighborhoods?.join(', ')}, vibes: ${group?.vibes?.join(', ')}`
     ).join('\n');
     
     const prompt = `

@@ -234,11 +234,11 @@ export function GroupCard({
               </div>
               <div className="flex items-center justify-start gap-2">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
-                <span>{userGroup.neighborhoods.join(', ')}</span>
+                <span>{userGroup?.neighborhoods?.join(', ')}</span>
               </div>
               <div className="flex items-center justify-start gap-2">
                 <Smile className="h-5 w-5 text-muted-foreground" />
-                <span>{userGroup.vibes.join(', ')}</span>
+                <span>{userGroup?.vibes?.join(', ')}</span>
               </div>
               <div className="flex items-center justify-start gap-2">
                 <Target className="h-5 w-5 text-muted-foreground" />

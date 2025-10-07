@@ -145,8 +145,8 @@ export function generateVenueReasoning(
   const group2Vibes = group2.vibes || (group2.vibe ? [group2.vibe] : []);
   
   if (isAIGenerated) {
-    const combinedVibes = [...new Set([...group1Vibes, ...group2Vibes])].join(', ');
-    const combinedNeighborhoods = [...new Set([...group1Neighborhoods, ...group2Neighborhoods])].join('/');
+    const combinedVibes = [...new Set([...group1Vibes, ...group2Vibes])]?.join(', ');
+    const combinedNeighborhoods = [...new Set([...group1Neighborhoods, ...group2Neighborhoods])]?.join('/');
     return `AI suggested this venue based on your combined preferences for ${combinedVibes} vibes in the ${combinedNeighborhoods} area.`;
   }
   

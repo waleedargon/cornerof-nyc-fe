@@ -129,9 +129,9 @@ export default function AdminGroupsPage() {
                 <TableCell className="font-medium">{group.name}</TableCell>
                 <TableCell>{group.size}</TableCell>
                 <TableCell>
-                  {group.neighborhoods?.length > 0 
-                    ? group.neighborhoods.join(', ') 
-                    : group.neighborhood || 'N/A'}
+                  {group?.neighborhoods?.length > 0 
+                    ? group?.neighborhoods?.join(', ') 
+                    : group?.neighborhood || 'N/A'}
                 </TableCell>
                 <TableCell>{group.creator.name}</TableCell>
                 <TableCell>

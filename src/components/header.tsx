@@ -19,8 +19,9 @@ type HeaderProps = {
 export function Header({ title, backHref, showSignOut = false, showLogo = true, centerLogo = false, hideProfileAndLogout = false }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  
 
-  // Hide profile and logout buttons on home page
+  // Hide profile and logout buttons only on home page
   const shouldHideProfileAndLogout = hideProfileAndLogout || pathname === '/home';
 
   const handleSignOut = () => {
@@ -30,7 +31,7 @@ export function Header({ title, backHref, showSignOut = false, showLogo = true, 
     router.push('/');
   };
   
-  if (centerLogo) {
+  if (centerLogo || pathname === '/group-profile') {
     return (
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
         <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">

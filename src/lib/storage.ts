@@ -28,7 +28,7 @@ export function validateFile(file: File, options: UploadOptions = DEFAULT_OPTION
   }
 
   if (allowedTypes && !allowedTypes.includes(file.type)) {
-    return `File type not allowed. Supported types: ${allowedTypes.join(', ')}`;
+    return `File type not allowed. Supported types: ${allowedTypes?.join(', ')}`;
   }
 
   return null;

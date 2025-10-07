@@ -8,14 +8,22 @@ import { db } from '@/lib/firebase';
 import type { Group, User } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, EyeOff, Crown, Users as UsersIcon, MapPin, Tag, Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Eye, EyeOff, Crown, Users as UsersIcon, MapPin, Tag, Heart, Edit } from 'lucide-react';
 import Image from 'next/image';
+import { Header } from '@/components/header';
+import { EditGroupDialog } from '@/components/edit-group-dialog';
 
 export default function GroupProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleGroupUpdate = () => {
+    // Reload the page to fetch updated group data
+    window.location.reload();
+  };
 
   useEffect(() => {
     console.log('Group Profile - Auth state:', { user: !!user, authLoading });
@@ -99,18 +107,21 @@ export default function GroupProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="animate-pulse">
-          <div className="h-64 bg-muted"></div>
-          <div className="p-6 space-y-4">
-            <div className="h-6 bg-muted rounded"></div>
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-muted rounded"></div>
-                  <div className="h-4 bg-muted rounded flex-1"></div>
-                </div>
-              ))}
+      <div className="flex h-screen flex-col">
+        <Header centerLogo={true} backHref="/home" showSignOut={true} />
+        <div className="flex-1 bg-background">
+          <div className="animate-pulse">
+            <div className="h-64 bg-muted"></div>
+            <div className="p-6 space-y-4">
+              <div className="h-6 bg-muted rounded"></div>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-muted rounded"></div>
+                    <div className="h-4 bg-muted rounded flex-1"></div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -120,20 +131,25 @@ export default function GroupProfilePage() {
 
   if (!group) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <UsersIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Group Found</h2>
-          <p className="text-muted-foreground">You're not part of any group yet.</p>
+      <div className="flex h-screen flex-col">
+        <Header centerLogo={true} backHref="/home" showSignOut={true} />
+        <div className="flex-1 bg-background flex items-center justify-center">
+          <div className="text-center">
+            <UsersIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Group Found</h2>
+            <p className="text-muted-foreground">You're not part of any group yet.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Large Group Photo Header */}
-      <div className="relative h-64 w-full overflow-hidden">
+    <div className="flex h-screen flex-col">
+      <Header title="Group Profile" backHref="/home" />
+      <div className="flex-1 overflow-y-auto bg-background">
+        {/* Large Group Photo Header */}
+        <div className="relative h-64 w-full overflow-hidden">
         {group.pictureUrl ? (
           <Image
             src={group.pictureUrl}
@@ -185,10 +201,21 @@ export default function GroupProfilePage() {
 
       {/* Group Name */}
       <div className="px-6 py-4">
-        <h1 className="text-2xl font-bold text-foreground">{group.name}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {group.members.length} member{group.members.length !== 1 ? 's' : ''}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{group.name}</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {/* Edit Button - Only show for group creator */}
+          {user && (group.creator as User)?.id === user.id && (
+            <EditGroupDialog
+              group={group}
+              onGroupUpdated={handleGroupUpdate}
+            />
+          )}
+        </div>
       </div>
 
       {/* Members List */}
@@ -289,6 +316,7 @@ export default function GroupProfilePage() {
             </Badge>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
