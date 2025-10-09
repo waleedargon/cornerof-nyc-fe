@@ -68,7 +68,7 @@ export default function RootLayout({
         {/* reCAPTCHA for Firebase Phone Authentication */}
         <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lc_StkrAAAAAF0i5eRw0IWC_cbZF9rxluu4gQio" async defer></script>
         {/* Optimize viewport for mobile */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#000000" />
         {/* Prevent FOUC */}
         <style>{`
