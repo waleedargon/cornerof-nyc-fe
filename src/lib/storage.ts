@@ -1,4 +1,4 @@
-import { storage } from './firebase';
+import { storage, auth } from './firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -35,6 +35,28 @@ export function validateFile(file: File, options: UploadOptions = DEFAULT_OPTION
 }
 
 /**
+ * Checks if user is authenticated
+ * Supports both Firebase Auth (admin) and localStorage (regular users)
+ */
+function checkAuthentication(): void {
+  // Check Firebase Auth first (for admin users)
+  if (auth.currentUser) {
+    return; // Admin is authenticated via Firebase Auth ✅
+  }
+  
+  // Check localStorage for regular users
+  if (typeof window !== 'undefined') {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      return; // Regular user is authenticated via localStorage ✅
+    }
+  }
+  
+  // If neither authentication method found, throw error
+  throw new Error('You must be signed in to upload files.');
+}
+
+/**
  * Uploads a file to Firebase Storage
  */
 export async function uploadFile(
@@ -42,6 +64,9 @@ export async function uploadFile(
   path: string,
   options: UploadOptions = DEFAULT_OPTIONS
 ): Promise<UploadResult> {
+  // Check authentication
+  checkAuthentication();
+  
   // Validate file
   const validationError = validateFile(file, options);
   if (validationError) {
@@ -69,6 +94,12 @@ export async function uploadFile(
     };
   } catch (error) {
     console.error('Upload error:', error);
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('storage/unauthorized')) {
+        throw new Error('You do not have permission to upload this file. Please make sure you are signed in.');
+      }
+    }
     throw new Error('Failed to upload file. Please try again.');
   }
 }
@@ -79,12 +110,19 @@ export async function uploadFile(
 export async function deleteFile(path: string): Promise<void> {
   if (!path) return;
 
+  // Check authentication
+  checkAuthentication();
+
   try {
     const storageRef = ref(storage, path);
     await deleteObject(storageRef);
   } catch (error) {
     console.error('Delete error:', error);
     // Don't throw error for delete operations to avoid blocking UI
+    // but log if it's an authentication issue
+    if (error instanceof Error && error.message.includes('storage/unauthorized')) {
+      console.warn('Unauthorized to delete file. User may need to sign in again.');
+    }
   }
 }
 

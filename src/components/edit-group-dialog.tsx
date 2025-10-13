@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Edit, Loader2, Upload, X } from 'lucide-react';
 import { doc, updateDoc, deleteField, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,8 @@ import {
 } from '@/components/ui/select';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useToast } from '@/hooks/use-toast';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { uploadGroupImage, deleteFile } from '@/lib/storage';
 import type { Group, GroupIntent, GroupMode } from '@/lib/types';
 import { useNeighborhoods } from '@/hooks/use-neighborhoods';
 import { useVibes } from '@/hooks/use-vibes';
@@ -122,22 +122,22 @@ export function EditGroupDialog({ group, open, onOpenChange, onGroupUpdated }: E
         // Delete old image if exists
         if (group.pictureUrl) {
           try {
-            const oldImageRef = ref(storage, group.pictureUrl);
-            await deleteObject(oldImageRef);
+            // Extract path from URL or use picturePath if available
+            const pathToDelete = (group as any).picturePath || group.pictureUrl;
+            await deleteFile(pathToDelete);
           } catch (error) {
             console.log('Old image not found, continuing...');
           }
         }
 
-        // Upload new image
-        const imageRef = ref(storage, `groups/${group.id}-${Date.now()}`);
-        await uploadBytes(imageRef, values.picture);
-        pictureUrl = await getDownloadURL(imageRef);
+        // Upload new image using the storage utility
+        const uploadResult = await uploadGroupImage(values.picture, group.id);
+        pictureUrl = uploadResult.url;
       } else if (imagePreview === null && group.pictureUrl) {
         // Remove image if user cleared it
         try {
-          const oldImageRef = ref(storage, group.pictureUrl);
-          await deleteObject(oldImageRef);
+          const pathToDelete = (group as any).picturePath || group.pictureUrl;
+          await deleteFile(pathToDelete);
         } catch (error) {
           console.log('Old image not found, continuing...');
         }
