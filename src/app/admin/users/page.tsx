@@ -102,14 +102,16 @@ function UserActions({ user, onUserUpdated }: { user: User; onUserUpdated: () =>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{user.name}"? This action will:
-              <ul className="list-disc list-inside mt-2 space-y-1">
+            </AlertDialogDescription>
+            <div className="mt-2">
+              <ul className="list-disc list-inside space-y-1">
                 <li>Remove the user from all groups they're a member of</li>
                 <li>Transfer group ownership if they're a creator</li>
                 <li>Delete their Firebase Auth account</li>
                 <li>Remove all their personal data</li>
               </ul>
               <strong className="block mt-2">This action cannot be undone.</strong>
-            </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>

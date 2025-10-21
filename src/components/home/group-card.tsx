@@ -359,14 +359,16 @@ export function GroupCard({
           <AlertDialogTitle>Delete Your Group</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete "{userGroup?.name}"? This action will:
-            <ul className="list-disc list-inside mt-2 space-y-1">
+          </AlertDialogDescription>
+          <div className="mt-2">
+            <ul className="list-disc list-inside space-y-1">
               <li>Remove all members from the group</li>
               <li>Delete any active chatrooms for this group</li>
               <li>Cancel all pending invitations</li>
               <li>Make any matched groups available for new matches</li>
             </ul>
             <strong className="block mt-2 text-destructive">This action cannot be undone.</strong>
-          </AlertDialogDescription>
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>

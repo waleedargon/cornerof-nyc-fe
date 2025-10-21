@@ -89,14 +89,16 @@ export function GroupActions({ group, onGroupUpdated }: { group: Group; onGroupU
             <AlertDialogTitle>Delete Group</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{group.name}"? This action will:
-              <ul className="list-disc list-inside mt-2 space-y-1">
+            </AlertDialogDescription>
+            <div className="mt-2">
+              <ul className="list-disc list-inside space-y-1">
                 <li>Remove all members from the group</li>
                 <li>Delete all invitations sent/received by this group</li>
                 <li>Remove any active chatrooms for this group</li>
                 <li>Make other matched groups available for new matches</li>
               </ul>
               <strong className="block mt-2">This action cannot be undone.</strong>
-            </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>

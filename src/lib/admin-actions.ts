@@ -13,8 +13,8 @@ import {
   getDoc,
   setDoc
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { adminAuth } from '@/lib/firebase-admin';
+import { db, auth } from '@/lib/firebase';
+import { adminAuth, getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import type { Group, User } from '@/lib/types';
 
 /**
@@ -113,28 +113,40 @@ export async function deleteGroupWithCascade(groupId: string): Promise<{ success
  */
 export async function deleteUserWithCascade(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const batch = writeBatch(db);
-    const userRef = doc(db, 'users', userId);
+    console.log('Attempting to delete user:', userId);
+    
+    // Since this is a server-side function, we'll use the Admin SDK directly
+    // instead of making an HTTP request to ourselves
+    const adminAuth = await getAdminAuth();
+    const adminDb = await getAdminDb();
+    
+    if (!adminAuth || !adminDb) {
+      console.error('Admin SDK not initialized. Check environment variables.');
+      return { success: false, error: 'Admin SDK not initialized' };
+    }
+
+    console.log(`Admin attempting to delete user ${userId}`);
+
+    // Start a batch for Firestore operations
+    const batch = adminDb.batch();
     
     // 1. Find all groups where user is a member
-    const groupsQuery = query(
-      collection(db, 'groups'),
-      where('members', 'array-contains', userRef)
-    );
-    const groupsDocs = await getDocs(groupsQuery);
+    const groupsQuery = adminDb.collection('groups').where('members', 'array-contains', adminDb.collection('users').doc(userId));
+    const groupsSnapshot = await groupsQuery.get();
     
     // 2. Remove user from all groups and handle creator transfer
-    for (const groupDoc of groupsDocs.docs) {
-      const groupData = groupDoc.data() as Group;
-      const groupRef = doc(db, 'groups', groupDoc.id);
+    for (const groupDoc of groupsSnapshot.docs) {
+      const groupData = groupDoc.data();
+      const groupRef = groupDoc.ref;
       
       // Remove user from members array
+      const userRef = adminDb.collection('users').doc(userId);
       batch.update(groupRef, {
-        members: arrayRemove(userRef)
+        members: adminDb.FieldValue.arrayRemove(userRef)
       });
       
       // If user is the creator, transfer ownership to another member or delete group
-      if (groupData.creator && (groupData.creator as any).id === userId) {
+      if (groupData.creator && groupData.creator.id === userId) {
         const remainingMembers = (groupData.members || []).filter(
           (member: any) => member.id !== userId
         );
@@ -143,45 +155,37 @@ export async function deleteUserWithCascade(userId: string): Promise<{ success: 
           // Transfer ownership to the first remaining member
           const newCreator = remainingMembers[0];
           batch.update(groupRef, {
-            creator: doc(db, 'users', (newCreator as any).id)
+            creator: adminDb.collection('users').doc(newCreator.id)
           });
         } else {
           // No remaining members, delete the group
           batch.delete(groupRef);
           
           // Also clean up related data (invitations, matches)
-          const invitationsQuery1 = query(
-            collection(db, 'invitations'),
-            where('fromGroup', '==', groupRef)
-          );
-          const invitationsQuery2 = query(
-            collection(db, 'invitations'),
-            where('toGroup', '==', groupRef)
-          );
+          const invitationsQuery1 = adminDb.collection('invitations').where('fromGroup', '==', groupRef);
+          const invitationsQuery2 = adminDb.collection('invitations').where('toGroup', '==', groupRef);
           
           const [sentInvitations, receivedInvitations] = await Promise.all([
-            getDocs(invitationsQuery1),
-            getDocs(invitationsQuery2)
+            invitationsQuery1.get(),
+            invitationsQuery2.get()
           ]);
           
           [...sentInvitations.docs, ...receivedInvitations.docs].forEach(inviteDoc => {
-            batch.delete(doc(db, 'invitations', inviteDoc.id));
+            batch.delete(inviteDoc.ref);
           });
           
-          const matchesQuery = query(
-            collection(db, 'matches'),
-            where('groups', 'array-contains', groupRef)
-          );
-          const matchesDocs = await getDocs(matchesQuery);
+          const matchesQuery = adminDb.collection('matches').where('groups', 'array-contains', groupRef);
+          const matchesSnapshot = await matchesQuery.get();
           
-          matchesDocs.docs.forEach(matchDoc => {
-            batch.delete(doc(db, 'matches', matchDoc.id));
+          matchesSnapshot.docs.forEach(matchDoc => {
+            batch.delete(matchDoc.ref);
           });
         }
       }
     }
     
     // 3. Delete user document
+    const userRef = adminDb.collection('users').doc(userId);
     batch.delete(userRef);
     
     // 4. Commit Firestore changes
@@ -190,11 +194,13 @@ export async function deleteUserWithCascade(userId: string): Promise<{ success: 
     // 5. Delete Firebase Auth user
     try {
       await adminAuth.deleteUser(userId);
+      console.log(`Successfully deleted Firebase Auth user: ${userId}`);
     } catch (authError) {
       console.error('Error deleting Firebase Auth user:', authError);
       // Continue even if auth deletion fails
     }
     
+    console.log('User deleted successfully');
     return { success: true };
   } catch (error) {
     console.error('Error deleting user:', error);
